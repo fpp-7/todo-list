@@ -1,0 +1,4 @@
+docker run -p 4200:4200 angular-docker #Para rodar na porta 4200 do localhost.
+
+docker build -t angular-docker . #Para rodar o build do docker
+
