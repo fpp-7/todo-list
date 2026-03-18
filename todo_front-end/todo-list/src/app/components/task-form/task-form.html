@@ -1,1 +1,136 @@
-<p>task-form works!</p>
+﻿<section class="task-form-card">
+  <form class="task-form-card__fields" (ngSubmit)="submitForm()">
+    <label class="task-form-card__field">
+      <span class="task-form-card__label">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 7.5H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M5 12H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M5 16.5H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        Título
+      </span>
+      <div class="task-form-card__control">
+        <input
+          [(ngModel)]="title"
+          name="title"
+          type="text"
+          placeholder="Ex.: Revisar onboarding do usuário"
+          required
+        />
+      </div>
+    </label>
+
+    <div class="task-form-card__grid">
+      <label class="task-form-card__field">
+        <span class="task-form-card__label">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M5.5 8.5V6.5C5.5 5.94772 5.94772 5.5 6.5 5.5H10.0858C10.351 5.5 10.6054 5.60536 10.7929 5.79289L12.2071 7.20711C12.3946 7.39464 12.649 7.5 12.9142 7.5H17.5C18.6046 7.5 19.5 8.39543 19.5 9.5V16.5C19.5 17.6046 18.6046 18.5 17.5 18.5H6.5C5.39543 18.5 4.5 17.6046 4.5 16.5V10.5C4.5 9.39543 5.39543 8.5 6.5 8.5H5.5Z"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Categoria
+        </span>
+        <div class="task-form-card__control">
+          <input [(ngModel)]="category" name="category" type="text" placeholder="Pessoal" />
+        </div>
+      </label>
+
+      <label class="task-form-card__field">
+        <span class="task-form-card__label">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7.5 4.5V7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M16.5 4.5V7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <rect x="4.5" y="6.5" width="15" height="13" rx="3" stroke="currentColor" stroke-width="1.8" />
+            <path d="M4.5 10.5H19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+          Prazo
+        </span>
+        <div class="task-form-card__control">
+          <input [(ngModel)]="dueDate" name="dueDate" type="date" />
+        </div>
+      </label>
+    </div>
+
+    <div class="task-form-card__priority">
+      <span class="task-form-card__label">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 5.5V18.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path
+            d="M7 6H15.5L14 9.25L15.5 12.5H7"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Prioridade
+      </span>
+      <div class="task-form-card__chips">
+        @for (priority of priorities; track priority) {
+          <button
+            type="button"
+            [class.task-form-card__chip--active]="selectedPriority() === priority"
+            [class.task-form-card__chip--low-active]="selectedPriority() === priority && priority === 'Baixa'"
+            [class.task-form-card__chip--medium-active]="selectedPriority() === priority && priority === 'Média'"
+            [class.task-form-card__chip--high-active]="selectedPriority() === priority && priority === 'Alta'"
+            [attr.aria-pressed]="selectedPriority() === priority"
+            (click)="setPriority(priority)"
+          >
+            <span
+              class="task-form-card__chip-dot"
+              [class.task-form-card__chip-dot--low]="priority === 'Baixa'"
+              [class.task-form-card__chip-dot--medium]="priority === 'Média'"
+              [class.task-form-card__chip-dot--high]="priority === 'Alta'"
+              aria-hidden="true"
+            ></span>
+            {{ priority }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <label class="task-form-card__field">
+      <span class="task-form-card__label">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 6.5H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M7 11H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <path d="M7 15.5H12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <rect x="4.5" y="4.5" width="15" height="15" rx="3" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+        Observações
+      </span>
+      <div class="task-form-card__control task-form-card__control--textarea">
+        <span class="task-form-card__control-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 7H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M7 11.5H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M7 16H12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </span>
+        <textarea
+          [(ngModel)]="notes"
+          name="notes"
+          rows="4"
+          placeholder="Adicione contexto, links úteis ou próximos passos."
+        ></textarea>
+      </div>
+    </label>
+
+    <div class="task-form-card__actions">
+      <button type="submit" class="task-form-card__submit" [disabled]="submitting()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        @if (submitting()) {
+          Salvando...
+        } @else {
+          Criar tarefa
+        }
+      </button>
+    </div>
+  </form>
+</section>
+

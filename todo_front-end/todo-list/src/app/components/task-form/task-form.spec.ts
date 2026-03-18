@@ -1,5 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TaskForm } from './task-form';
 
 describe('TaskForm', () => {
@@ -8,9 +7,8 @@ describe('TaskForm', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TaskForm]
-    })
-    .compileComponents();
+      imports: [TaskForm],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TaskForm);
     component = fixture.componentInstance;
@@ -20,4 +18,10 @@ describe('TaskForm', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should render the task title field', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Título');
+  });
 });
+

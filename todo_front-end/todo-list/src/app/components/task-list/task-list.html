@@ -1,1 +1,620 @@
-<p>task-list works!</p>
+﻿<div class="task-dashboard">
+  <header class="task-topbar">
+    <div class="task-topbar__brand-shell">
+      <div class="task-topbar__brand">
+        <div class="task-topbar__brand-copy">
+          <div class="task-topbar__brand-lockup">
+            <span class="task-topbar__brand-title">TODO LIST</span>
+            <span class="task-topbar__logo" aria-hidden="true">
+              <img src="/images/todo-list-icon.png" alt="" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task-topbar__search-shell">
+      <label class="task-topbar__search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 0 0-14.4 7.2 7.2 0 0 0 0 14.4Z" />
+        </svg>
+        <input
+          type="search"
+          placeholder="Buscar tarefa, categoria ou observação"
+          (input)="setSearchQuery($any($event.target).value)"
+        />
+      </label>
+    </div>
+
+    <div class="task-topbar__utility">
+      <button type="button" class="task-topbar__cta" (click)="openTaskModal()">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Nova tarefa
+      </button>
+
+      <button
+        type="button"
+        class="task-topbar__theme-toggle"
+        [attr.aria-label]="isDarkTheme() ? 'Ativar tema claro' : 'Ativar tema escuro'"
+        [attr.aria-pressed]="isDarkTheme()"
+        (click)="toggleTheme()"
+      >
+        <span class="task-topbar__theme-icon" aria-hidden="true">
+          @if (isDarkTheme()) {
+            <svg viewBox="0 0 24 24">
+              <path d="M20 14.2A8.5 8.5 0 1 1 9.8 4a7 7 0 0 0 10.2 10.2Z" />
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2.5v2.2M12 19.3v2.2M4.7 4.7l1.6 1.6M17.7 17.7l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.7 19.3l1.6-1.6M17.7 6.3l1.6-1.6" />
+            </svg>
+          }
+        </span>
+      </button>
+
+      <div class="task-topbar__actions">
+        <button type="button" class="task-topbar__user" (click)="openProfileModal()">
+          <span
+            class="task-topbar__avatar"
+            [class.task-topbar__avatar--photo]="profileImageUrl()"
+          >
+            @if (profileImageUrl()) {
+              <img [src]="profileImageUrl()" alt="" />
+            } @else {
+              {{ profileInitials() }}
+            }
+          </span>
+
+          <div class="task-topbar__user-copy">
+            <strong>{{ profileName() }}</strong>
+          </div>
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m8 10 4 4 4-4" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="task-dashboard__layout">
+    <section class="task-dashboard__main">
+      <section class="task-status-grid" aria-label="Resumo das tarefas">
+        <article
+          class="task-status-card task-status-card--today task-status-card--activeable"
+          [class.task-status-card--active]="selectedFilter() === 'Hoje'"
+          role="button"
+          tabindex="0"
+          (click)="selectFilter('Hoje')"
+          (keydown.enter)="selectFilter('Hoje')"
+        >
+          <div class="task-status-card__copy">
+            <span class="task-status-card__eyebrow">Foco do dia</span>
+            <strong class="task-status-card__value">{{ todayCount() }}</strong>
+            <p class="task-status-card__title">Para hoje</p>
+          </div>
+
+          <div class="task-status-card__aside">
+            <span class="task-status-card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2Z" />
+                <path d="m10 14 1.5 1.5L15 12" />
+              </svg>
+            </span>
+            <span class="task-status-card__badge">My Day</span>
+          </div>
+        </article>
+
+        <article
+          class="task-status-card task-status-card--progress task-status-card--activeable"
+          [class.task-status-card--active]="selectedFilter() === 'Em andamento'"
+          role="button"
+          tabindex="0"
+          (click)="selectFilter('Em andamento')"
+          (keydown.enter)="selectFilter('Em andamento')"
+        >
+          <div class="task-status-card__copy">
+            <span class="task-status-card__eyebrow">Fluxo ativo</span>
+            <strong class="task-status-card__value">{{ inProgressCount() }}</strong>
+            <p class="task-status-card__title">Em andamento</p>
+          </div>
+
+          <span class="task-status-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+          </span>
+        </article>
+
+        <article
+          class="task-status-card task-status-card--planned task-status-card--activeable"
+          [class.task-status-card--active]="selectedFilter() === 'Planejadas'"
+          role="button"
+          tabindex="0"
+          (click)="selectFilter('Planejadas')"
+          (keydown.enter)="selectFilter('Planejadas')"
+        >
+          <div class="task-status-card__copy">
+            <span class="task-status-card__eyebrow">Planejamento</span>
+            <strong class="task-status-card__value">{{ plannedCount() }}</strong>
+            <p class="task-status-card__title">Planejadas</p>
+          </div>
+
+          <span class="task-status-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2Z" />
+              <path d="M8 14h8M8 18h5" />
+            </svg>
+          </span>
+        </article>
+
+        <article
+          class="task-status-card task-status-card--done task-status-card--activeable"
+          [class.task-status-card--active]="selectedFilter() === 'Concluídas'"
+          role="button"
+          tabindex="0"
+          (click)="selectFilter('Concluídas')"
+          (keydown.enter)="selectFilter('Concluídas')"
+        >
+          <div class="task-status-card__copy">
+            <span class="task-status-card__eyebrow">Arquivo</span>
+            <strong class="task-status-card__value">{{ doneCount() }}</strong>
+            <p class="task-status-card__title">Concluídas</p>
+          </div>
+
+          <span class="task-status-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 22A10 10 0 1 0 2 12a10 10 0 0 0 10 10Z" />
+              <path d="M7 12.5 10.2 15.7 17 8.9" />
+            </svg>
+          </span>
+        </article>
+      </section>
+
+      <section class="task-list-panel">
+        <header class="task-list-panel__header">
+          <div>
+            <p class="task-list-panel__eyebrow">Minha lista</p>
+            <h3>Suas tarefas</h3>
+          </div>
+
+          <div class="task-list-panel__header-meta">
+            <nav class="task-filters task-list-panel__filters" aria-label="Filtrar tarefas">
+              @for (filter of filters; track filter) {
+                <button
+                  type="button"
+                  class="task-filters__item"
+                  [class.task-filters__item--active]="selectedFilter() === filter"
+                  (click)="selectFilter(filter)"
+                >
+                  {{ filter }}
+                </button>
+              }
+            </nav>
+            <span class="task-list-panel__count">{{ filteredTasks().length }} itens</span>
+          </div>
+        </header>
+
+        <p class="task-list-panel__message">{{ syncMessage() }}</p>
+
+        @if (isLoading()) {
+          <div class="task-list-panel__empty">
+            <strong>Carregando tarefas...</strong>
+            <p>Preparando sua lista para exibição.</p>
+          </div>
+        } @else if (filteredTasks().length) {
+          <div class="task-list-panel__items">
+            @for (task of filteredTasks(); track task.id) {
+              <article
+                class="task-row"
+                [class.task-row--done]="task.done"
+                [class.task-row--high]="task.priority === 'Alta'"
+                [class.task-row--medium]="task.priority === 'Média'"
+                [class.task-row--low]="task.priority === 'Baixa'"
+                role="button"
+                tabindex="0"
+                (click)="openEditTaskModal(task)"
+                (keydown)="handleTaskCardKeydown($event, task)"
+              >
+                <button
+                  type="button"
+                  class="task-row__toggle"
+                  [class.task-row__toggle--done]="task.done"
+                  [disabled]="task.done || isTaskUpdating(task.id)"
+                  (click)="$event.stopPropagation(); completeTask(task)"
+                  [attr.aria-label]="task.done ? 'Tarefa concluída' : 'Concluir tarefa'"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m5 12.5 4.2 4.2L19 7.8" />
+                  </svg>
+                </button>
+
+                <div class="task-row__content">
+                  <div class="task-row__heading">
+                    <div class="task-row__headline">
+                      <h4>{{ task.title }}</h4>
+                      <p>{{ task.description }}</p>
+                    </div>
+
+                    <div class="task-row__side">
+                      <button
+                        type="button"
+                        class="task-row__edit"
+                        [disabled]="isTaskUpdating(task.id)"
+                        (click)="$event.stopPropagation(); openEditTaskModal(task)"
+                        aria-label="Editar tarefa"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M4 20h4.5L19 9.5 14.5 5 4 15.5V20Z" />
+                          <path d="M12.5 7 17 11.5" />
+                        </svg>
+                      </button>
+
+                      <span
+                        class="task-row__priority"
+                        [class.task-row__priority--high]="task.priority === 'Alta'"
+                        [class.task-row__priority--medium]="task.priority === 'Média'"
+                        [class.task-row__priority--low]="task.priority === 'Baixa'"
+                      >
+                        {{ task.priority }}
+                      </span>
+                    </div>
+                  </div>
+
+                  @if (isTaskUpdating(task.id)) {
+                    <div class="task-row__feedback">
+                      <span class="task-row__saving">Salvando...</span>
+                    </div>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="task-list-panel__empty">
+            <strong>Nenhuma tarefa encontrada</strong>
+            <p>Crie uma nova tarefa ou ajuste os filtros para ver outros itens.</p>
+          </div>
+        }
+      </section>
+    </section>
+  </main>
+</div>
+
+@if (isTaskModalOpen()) {
+  <div class="dashboard-modal-backdrop" (click)="closeTaskModal()">
+    <section
+      class="dashboard-modal dashboard-modal--task"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="task-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dashboard-modal__header">
+        <div>
+          <p class="dashboard-modal__eyebrow">Nova tarefa</p>
+          <h2 id="task-modal-title">Criar nova tarefa</h2>
+        </div>
+        <button type="button" class="dashboard-modal__close" (click)="closeTaskModal()">
+          Fechar
+        </button>
+      </div>
+
+      <app-task-form
+        [submitting]="isSavingTask()"
+        (taskSubmitted)="handleTaskSubmitted($event)"
+      ></app-task-form>
+    </section>
+  </div>
+}
+
+@if (isEditTaskModalOpen()) {
+  <div class="dashboard-modal-backdrop" (click)="closeEditTaskModal()">
+    <section
+      class="dashboard-modal dashboard-modal--task-edit"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="task-edit-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dashboard-modal__header">
+        <div>
+          <p class="dashboard-modal__eyebrow">Editar tarefa</p>
+          <h2 id="task-edit-modal-title">{{ editingTitle || 'Atualizar tarefa' }}</h2>
+        </div>
+        <button type="button" class="dashboard-modal__close" (click)="closeEditTaskModal()">
+          Fechar
+        </button>
+      </div>
+
+      <form class="task-edit-form" (ngSubmit)="submitTaskEdit()">
+        <div class="task-edit-form__grid">
+          <label class="task-edit-form__field task-edit-form__field--wide">
+            <span class="task-edit-form__label">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 7.5H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M5 12H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M5 16.5H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+              Título
+            </span>
+            <div class="task-edit-form__control">
+              <input [(ngModel)]="editingTitle" name="editingTitle" type="text" required />
+            </div>
+          </label>
+
+          <label class="task-edit-form__field">
+            <span class="task-edit-form__label">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M5 8C5 6.89543 5.89543 6 7 6H13.1716C13.702 6 14.2107 6.21071 14.5858 6.58579L17.4142 9.41421C17.7893 9.78929 18 10.298 18 10.8284V16C18 17.1046 17.1046 18 16 18H7C5.89543 18 5 17.1046 5 16V8Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+                <circle cx="12.25" cy="10.25" r="1.25" stroke="currentColor" stroke-width="1.6" />
+              </svg>
+              Categoria
+            </span>
+            <div class="task-edit-form__control">
+              <input [(ngModel)]="editingCategory" name="editingCategory" type="text" />
+            </div>
+          </label>
+
+          <label class="task-edit-form__field">
+            <span class="task-edit-form__label">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" stroke="currentColor" stroke-width="1.8" />
+                <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Status
+            </span>
+            <div class="task-edit-form__control">
+              <select [(ngModel)]="editingStatus" name="editingStatus">
+                @for (status of taskStatuses; track status) {
+                  <option [value]="status">{{ status }}</option>
+                }
+              </select>
+            </div>
+          </label>
+
+          <label class="task-edit-form__field">
+            <span class="task-edit-form__label">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M7 5.5V18.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path
+                  d="M7 6H15.5L14 9.25L15.5 12.5H7"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Prioridade
+            </span>
+            <div class="task-edit-form__control">
+              <select [(ngModel)]="editingPriority" name="editingPriority">
+                @for (priority of taskPriorities; track priority) {
+                  <option [value]="priority">{{ priority }}</option>
+                }
+              </select>
+            </div>
+          </label>
+        </div>
+
+        <label class="task-edit-form__field">
+          <span class="task-edit-form__label">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 6.5H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M7 11H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M7 15.5H12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <rect x="4.5" y="4.5" width="15" height="15" rx="3" stroke="currentColor" stroke-width="1.8" />
+            </svg>
+            Descrição
+          </span>
+          <div class="task-edit-form__control task-edit-form__control--textarea">
+            <textarea
+              [(ngModel)]="editingDescription"
+              name="editingDescription"
+              rows="5"
+              placeholder="Descreva o contexto, próximos passos ou detalhes da tarefa."
+            ></textarea>
+          </div>
+        </label>
+
+        <div class="task-edit-form__actions">
+          <button
+            type="button"
+            class="task-edit-form__secondary"
+            [disabled]="isEditingCurrentTask()"
+            (click)="deleteEditingTask()"
+          >
+            Excluir tarefa
+          </button>
+
+          <button
+            type="button"
+            class="task-edit-form__secondary"
+            [disabled]="isEditingCurrentTask()"
+            (click)="closeEditTaskModal()"
+          >
+            Cancelar
+          </button>
+
+          <button type="submit" class="task-edit-form__primary" [disabled]="isEditingCurrentTask()">
+            @if (isEditingCurrentTask()) {
+              Salvando...
+            } @else {
+              Salvar alterações
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (isProfileModalOpen()) {
+  <div class="dashboard-modal-backdrop" (click)="closeProfileModal()">
+    <section
+      class="dashboard-modal dashboard-modal--profile"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="profile-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dashboard-modal__header">
+        <div>
+          <p class="dashboard-modal__eyebrow">Meu perfil</p>
+          <h2 id="profile-modal-title">{{ profileName() }}</h2>
+        </div>
+        <button type="button" class="dashboard-modal__close" (click)="closeProfileModal()">
+          Fechar
+        </button>
+      </div>
+
+      <div class="profile-modal__section">
+        <div class="profile-modal__surface">
+          <input
+            #profilePhotoInput
+            class="profile-modal__file-input"
+            type="file"
+            accept="image/*"
+            (change)="handleProfilePhotoSelected($event)"
+          />
+
+          <div
+            class="profile-modal__photo-preview"
+            [class.profile-modal__photo-preview--photo]="profileImageUrl()"
+            aria-hidden="true"
+          >
+            @if (profileImageUrl()) {
+              <img [src]="profileImageUrl()" alt="" />
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M7 8.5A5 5 0 1 1 17 8.5A5 5 0 0 1 7 8.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M4.5 19.5C5.8 16.9 8.5 15.5 12 15.5C15.5 15.5 18.2 16.9 19.5 19.5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+            }
+          </div>
+
+          <div class="profile-modal__surface-copy">
+            <span>{{ profileName() }}</span>
+            <strong>{{ profileEmail }}</strong>
+          </div>
+
+          <div class="profile-modal__photo-tools">
+            <button type="button" class="profile-modal__primary" (click)="profilePhotoInput.click()">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M6.5 8.5H9L10.5 6.5H13.5L15 8.5H17.5C18.6046 8.5 19.5 9.39543 19.5 10.5V16.5C19.5 17.6046 18.6046 18.5 17.5 18.5H6.5C5.39543 18.5 4.5 17.6046 4.5 16.5V10.5C4.5 9.39543 5.39543 8.5 6.5 8.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+                <circle cx="12" cy="13.5" r="3" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+              {{ profileImageUrl() ? 'Alterar foto' : 'Escolher foto' }}
+            </button>
+
+            @if (profileImageUrl()) {
+              <button type="button" class="profile-modal__secondary" (click)="removeProfilePhoto()">
+                Remover foto
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-modal__section">
+        <div class="profile-modal__section-head">
+          <span class="profile-modal__section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M7.5 10V8.5A4.5 4.5 0 1 1 16.5 8.5V10"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+              <rect
+                x="5"
+                y="10"
+                width="14"
+                height="10"
+                rx="2.5"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+            </svg>
+          </span>
+
+          <div>
+            <strong>Alterar senha</strong>
+            <p>Defina uma nova senha para deixar seu acesso pronto para a integração com o backend.</p>
+          </div>
+        </div>
+
+        <div class="profile-modal__password-grid">
+          <label class="profile-modal__field">
+            <span>Senha atual</span>
+            <input
+              [(ngModel)]="profileCurrentPassword"
+              name="profileCurrentPassword"
+              type="password"
+              placeholder="Digite sua senha atual"
+            />
+          </label>
+
+          <label class="profile-modal__field">
+            <span>Nova senha</span>
+            <input
+              [(ngModel)]="profileNewPassword"
+              name="profileNewPassword"
+              type="password"
+              placeholder="Digite a nova senha"
+            />
+          </label>
+
+          <label class="profile-modal__field profile-modal__field--wide">
+            <span>Confirmar nova senha</span>
+            <input
+              [(ngModel)]="profileConfirmPassword"
+              name="profileConfirmPassword"
+              type="password"
+              placeholder="Repita a nova senha"
+            />
+          </label>
+        </div>
+
+        @if (profilePasswordFeedback()) {
+          <p
+            class="profile-modal__feedback"
+            [class.profile-modal__feedback--success]="profilePasswordFeedbackTone() === 'success'"
+            [class.profile-modal__feedback--error]="profilePasswordFeedbackTone() === 'error'"
+          >
+            {{ profilePasswordFeedback() }}
+          </p>
+        }
+
+        <div class="profile-modal__section-actions">
+          <button type="button" class="profile-modal__primary" (click)="saveProfilePassword()">
+            Atualizar senha
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+}
+

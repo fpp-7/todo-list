@@ -1,0 +1,293 @@
+<main class="login-shell">
+  <section class="showcase-panel">
+    <div class="showcase-panel__glow"></div>
+    <div class="showcase-content">
+      <span class="eyebrow">Todo List workspace</span>
+
+      <div
+        class="showcase-copy"
+        [class.showcase-copy--transitioning]="isHighlightTransitioning()"
+      >
+        <h1>{{ activeHighlight().title }}</h1>
+        <p class="showcase-description">
+          {{ activeHighlight().description }}
+        </p>
+      </div>
+
+      <div class="showcase-actions">
+        <div class="dot-selector" aria-label="Selecionar destaque">
+          @for (highlight of highlights; track highlight.title; let index = $index) {
+            <button
+              type="button"
+              class="dot-selector__item"
+              [class.dot-selector__item--active]="activeHighlightIndex() === index"
+              [attr.aria-label]="'Ver destaque ' + (index + 1)"
+              [attr.aria-pressed]="activeHighlightIndex() === index"
+              (click)="setActiveHighlight(index)"
+            ></button>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="form-panel">
+    <div class="form-panel__inner">
+      <div class="brand-lockup">
+        <p class="brand-lockup__eyebrow">Acesse sua central</p>
+        <div class="brand-lockup__heading">
+          <h2 class="brand-lockup__title">TODO LIST</h2>
+          <span class="brand-lockup__mark" aria-hidden="true">
+            <img src="/images/todo-list-icon.png" alt="" />
+          </span>
+        </div>
+        <p class="brand-lockup__subtitle">
+          Entre para acompanhar tarefas, prioridades e entregas em um &uacute;nico fluxo.
+        </p>
+      </div>
+
+      <form class="login-form">
+        <label class="field-group">
+          <span class="field-group__label">E-mail</span>
+          <span class="field-shell">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M20 21a8 8 0 1 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"
+              />
+            </svg>
+            <input type="email" placeholder="voc&ecirc;@empresa.com" autocomplete="email" />
+          </span>
+        </label>
+
+        <label class="field-group">
+          <span class="field-group__label">Senha</span>
+          <span class="field-shell">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M7 10V8a5 5 0 1 1 10 0v2M6 10h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z"
+              />
+            </svg>
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              placeholder="Digite sua senha"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="field-shell__toggle"
+              [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
+              (click)="togglePasswordVisibility()"
+            >
+              @if (showPassword()) {
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="m4 4 16 16M10.6 10.7A3 3 0 0 0 13.4 13.5M9.9 5.2A10.9 10.9 0 0 1 12 5c5.5 0 9.4 4.2 10 5-.4.5-2 2.7-4.5 4.2M6.6 6.7C3.8 8.3 2.2 10.8 2 11c.6.8 4.5 5 10 5 1 0 1.9-.1 2.7-.3"
+                  />
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+                  />
+                </svg>
+              }
+            </button>
+          </span>
+        </label>
+
+        <div class="form-row">
+          <label class="remember-me">
+            <input type="checkbox" />
+            <span>Mantenha-me conectado</span>
+          </label>
+
+          <button type="button" class="inline-link inline-link--button" (click)="openForgotPasswordModal()">
+            Esqueceu sua senha?
+          </button>
+        </div>
+
+        <button type="button" class="primary-action" routerLink="/tasks">Iniciar sess&atilde;o</button>
+      </form>
+
+      <p class="support-copy">
+        Primeiro acesso?
+        <button type="button" class="inline-link inline-link--button" (click)="openInviteModal()">
+          Solicitar convite
+        </button>
+      </p>
+    </div>
+  </section>
+</main>
+
+@if (isForgotPasswordModalOpen()) {
+  <div class="access-modal-backdrop" (click)="closeForgotPasswordModal()">
+    <section
+      class="access-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="forgot-password-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="access-modal__header">
+        <div>
+          <p class="access-modal__eyebrow">Recupera&ccedil;&atilde;o de acesso</p>
+          <h3 id="forgot-password-modal-title">Esqueceu sua senha?</h3>
+        </div>
+        <button type="button" class="access-modal__close" (click)="closeForgotPasswordModal()">
+          Fechar
+        </button>
+      </div>
+
+      <p class="access-modal__description">
+        Informe seu e-mail para que o backend possa iniciar o fluxo de redefini&ccedil;&atilde;o de senha.
+      </p>
+
+      <form class="access-modal__form" (ngSubmit)="submitForgotPassword()">
+        <label class="access-modal__field">
+          <span class="access-modal__label">E-mail</span>
+          <span class="access-modal__field-shell">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7.5 12 13l8-5.5" />
+              <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
+            </svg>
+            <input
+              [(ngModel)]="forgotPasswordEmail"
+              name="forgotPasswordEmail"
+              type="email"
+              placeholder="voce@empresa.com"
+              autocomplete="email"
+            />
+          </span>
+        </label>
+
+        @if (forgotPasswordFeedback()) {
+          <p
+            class="access-modal__feedback"
+            [class.access-modal__feedback--success]="forgotPasswordFeedbackTone() === 'success'"
+            [class.access-modal__feedback--error]="forgotPasswordFeedbackTone() === 'error'"
+          >
+            {{ forgotPasswordFeedback() }}
+          </p>
+        }
+
+        <div class="access-modal__actions">
+          <button type="button" class="access-modal__secondary" (click)="closeForgotPasswordModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="access-modal__primary" [disabled]="isSubmittingForgotPassword()">
+            @if (isSubmittingForgotPassword()) {
+              Enviando...
+            } @else {
+              Enviar instru&ccedil;&otilde;es
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (isInviteModalOpen()) {
+  <div class="access-modal-backdrop" (click)="closeInviteModal()">
+    <section
+      class="access-modal access-modal--wide"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="invite-modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="access-modal__header">
+        <div>
+          <p class="access-modal__eyebrow">Primeiro acesso</p>
+          <h3 id="invite-modal-title">Solicitar convite</h3>
+        </div>
+        <button type="button" class="access-modal__close" (click)="closeInviteModal()">
+          Fechar
+        </button>
+      </div>
+
+      <p class="access-modal__description">
+        Envie seus dados para que o backend registre a solicita&ccedil;&atilde;o e o fluxo j&aacute; fique pronto para a integra&ccedil;&atilde;o real.
+      </p>
+
+      <form class="access-modal__form" (ngSubmit)="submitInviteRequest()">
+        <div class="access-modal__grid">
+          <label class="access-modal__field">
+            <span class="access-modal__label">Nome</span>
+            <span class="access-modal__field-shell">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 21a8 8 0 1 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+              </svg>
+              <input
+                [(ngModel)]="inviteName"
+                name="inviteName"
+                type="text"
+                placeholder="Seu nome"
+                autocomplete="name"
+              />
+            </span>
+          </label>
+
+          <label class="access-modal__field">
+            <span class="access-modal__label">E-mail</span>
+            <span class="access-modal__field-shell">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7.5 12 13l8-5.5" />
+                <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
+              </svg>
+              <input
+                [(ngModel)]="inviteEmail"
+                name="inviteEmail"
+                type="email"
+                placeholder="voce@empresa.com"
+                autocomplete="email"
+              />
+            </span>
+          </label>
+        </div>
+
+        <label class="access-modal__field">
+          <span class="access-modal__label">Empresa ou equipe</span>
+          <span class="access-modal__field-shell">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 20h16" />
+              <path d="M6 20V8h12v12" />
+              <path d="M9 12h.01M9 15h.01M12 12h.01M12 15h.01M15 12h.01M15 15h.01" />
+              <path d="M9 8V5h6v3" />
+            </svg>
+            <input
+              [(ngModel)]="inviteCompany"
+              name="inviteCompany"
+              type="text"
+              placeholder="Ex.: Produto, Opera&ccedil;&otilde;es, Empresa X"
+              autocomplete="organization"
+            />
+          </span>
+        </label>
+
+        @if (inviteFeedback()) {
+          <p
+            class="access-modal__feedback"
+            [class.access-modal__feedback--success]="inviteFeedbackTone() === 'success'"
+            [class.access-modal__feedback--error]="inviteFeedbackTone() === 'error'"
+          >
+            {{ inviteFeedback() }}
+          </p>
+        }
+
+        <div class="access-modal__actions">
+          <button type="button" class="access-modal__secondary" (click)="closeInviteModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="access-modal__primary" [disabled]="isSubmittingInvite()">
+            @if (isSubmittingInvite()) {
+              Enviando...
+            } @else {
+              Enviar solicita&ccedil;&atilde;o
+            }
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
