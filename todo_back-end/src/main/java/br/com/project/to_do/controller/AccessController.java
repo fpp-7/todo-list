@@ -1,8 +1,8 @@
 package br.com.project.to_do.controller;
 
-import br.com.project.to_do.dto.access.AccessActionResponse;
-import br.com.project.to_do.dto.access.InviteRequest;
-import br.com.project.to_do.dto.access.PasswordResetRequest;
+import br.com.project.to_do.dto.AccessActionResponse;
+import br.com.project.to_do.dto.InviteRequest;
+import br.com.project.to_do.dto.PasswordResetRequest;
 import br.com.project.to_do.service.AccessRequestService;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;

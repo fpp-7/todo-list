@@ -1,8 +1,8 @@
 package br.com.project.to_do.service;
 
-import br.com.project.to_do.dto.access.AccessActionResponse;
-import br.com.project.to_do.dto.access.InviteRequest;
-import br.com.project.to_do.dto.access.PasswordResetRequest;
+import br.com.project.to_do.dto.AccessActionResponse;
+import br.com.project.to_do.dto.InviteRequest;
+import br.com.project.to_do.dto.PasswordResetRequest;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
