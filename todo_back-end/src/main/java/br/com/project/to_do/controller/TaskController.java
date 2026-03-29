@@ -1,8 +1,11 @@
 package br.com.project.to_do.controller;
 
+import br.com.project.to_do.model.Member;
 import br.com.project.to_do.model.Task;
 import br.com.project.to_do.service.TaskService;
 import java.util.List;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,27 +28,27 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<Task> listarTasks() {
-        return taskService.listar();
+    public List<Task> listarTasks(@AuthenticationPrincipal Member member) {
+        return taskService.listar(member);
     }
 
     @PutMapping("/{id}")
-    public Task updateTask(@PathVariable long id, @RequestBody Task task) {
-        return taskService.update(id);
+    public Task updateTask(@PathVariable long id, @RequestBody Task task, @AuthenticationPrincipal Member member) {
+        return taskService.update(id, task, member);
     }
 
     @PostMapping
-    public Task inserirTask(@RequestBody Task task) {
-        return taskService.salvar(task);
+    public Task inserirTask(@RequestBody Task task, @AuthenticationPrincipal Member member) {
+        return taskService.salvar(task, member);
     }
 
     @PutMapping("/concluir/{id}")
-    public Task concluirTask(@PathVariable long id) {
-        return taskService.concluir(id);
+    public Task concluirTask(@PathVariable long id, @AuthenticationPrincipal Member member) {
+        return taskService.concluir(id, member);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteTask(@PathVariable long id) {
-        taskService.deletar(id);
+    public void deleteTask(@PathVariable long id, @AuthenticationPrincipal Member member) {
+        taskService.deletar(id, member);
     }
 }

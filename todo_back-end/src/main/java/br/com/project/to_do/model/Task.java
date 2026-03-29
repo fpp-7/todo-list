@@ -1,9 +1,8 @@
 package br.com.project.to_do.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+
 import java.time.LocalDate;
 import lombok.Data;
 
@@ -21,4 +20,9 @@ public class Task {
     private String priority;
     private LocalDate dueDate;
     private boolean done;
+
+    @ManyToOne
+    @JoinColumn(name = "member_id")
+    @JsonIgnore
+    private Member member;
 }
