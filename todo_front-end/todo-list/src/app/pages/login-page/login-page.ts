@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { interval } from 'rxjs';
 import { AccessApiService } from '../../core/auth/access-api.service';
+import { SessionService } from '../../core/auth/session.service';
 
 type LoginHighlight = {
   readonly title: string;
@@ -23,6 +24,7 @@ export class LoginPage {
   private readonly highlightTransitionMs = 320;
   private readonly destroyRef = inject(DestroyRef);
   private readonly accessApi = inject(AccessApiService);
+  private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
   private highlightSwapTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private pendingHighlightIndex: number | null = null;
@@ -134,8 +136,7 @@ export class LoginPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          // TODO: Store token securely (e.g., localStorage, session storage)
-          console.log('Login successful, token:', response.token);
+          this.sessionService.saveToken(response.token);
           this.isSubmittingLogin.set(false);
           this.setLoginFeedback('Login realizado com sucesso!', 'success');
           this.router.navigate(['/tasks']);

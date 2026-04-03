@@ -1,6 +1,7 @@
 ﻿import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   TaskApiRecord,
   TaskApiService,
@@ -8,6 +9,7 @@ import {
   TaskUpsertPayload,
 } from '../../core/tasks/task-api.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { SessionService } from '../../core/auth/session.service';
 import { TaskForm } from '../task-form/task-form';
 
 type TaskFilter = 'Todas' | 'Hoje' | 'Em andamento' | 'Planejadas' | 'Concluídas';
@@ -94,6 +96,8 @@ export class TaskList {
   private readonly destroyRef = inject(DestroyRef);
   private readonly taskApi = inject(TaskApiService);
   private readonly themeService = inject(ThemeService);
+  private readonly sessionService = inject(SessionService);
+  private readonly router = inject(Router);
 
   protected readonly profileName = signal('Usuário');
   protected readonly profileEmail = 'usuario@exemplo.com';
@@ -182,6 +186,11 @@ export class TaskList {
 
   constructor() {
     this.loadTasks();
+  }
+
+  protected logout(): void {
+    this.sessionService.clearToken();
+    this.router.navigate(['/login']);
   }
 
   protected selectFilter(filter: TaskFilter): void {
