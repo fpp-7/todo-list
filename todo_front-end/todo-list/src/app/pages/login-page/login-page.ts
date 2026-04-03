@@ -1,7 +1,7 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { interval } from 'rxjs';
 import { AccessApiService } from '../../core/auth/access-api.service';
 
@@ -23,6 +23,7 @@ export class LoginPage {
   private readonly highlightTransitionMs = 320;
   private readonly destroyRef = inject(DestroyRef);
   private readonly accessApi = inject(AccessApiService);
+  private readonly router = inject(Router);
   private highlightSwapTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private pendingHighlightIndex: number | null = null;
 
@@ -51,14 +52,19 @@ export class LoginPage {
   protected readonly isInviteModalOpen = signal(false);
   protected readonly isSubmittingForgotPassword = signal(false);
   protected readonly isSubmittingInvite = signal(false);
+  protected readonly isSubmittingLogin = signal(false);
   protected readonly forgotPasswordFeedback = signal('');
   protected readonly forgotPasswordFeedbackTone = signal<FeedbackTone>(null);
   protected readonly inviteFeedback = signal('');
   protected readonly inviteFeedbackTone = signal<FeedbackTone>(null);
+  protected readonly loginFeedback = signal('');
+  protected readonly loginFeedbackTone = signal<FeedbackTone>(null);
   protected readonly activeHighlight = computed(
     () => this.highlights[this.activeHighlightIndex()],
   );
 
+  protected loginEmail = '';
+  protected loginPassword = '';
   protected forgotPasswordEmail = '';
   protected inviteName = '';
   protected inviteEmail = '';
@@ -102,6 +108,47 @@ export class LoginPage {
   protected closeInviteModal(): void {
     this.isInviteModalOpen.set(false);
     this.resetInviteState();
+  }
+
+  protected handleLoginSubmit(): void {
+    const login = this.loginEmail.trim().toLowerCase();
+    const password = this.loginPassword.trim();
+
+    if (!this.isValidEmail(login)) {
+      this.setLoginFeedback(
+        'Informe um e-mail v\u00E1lido para fazer login.',
+        'error',
+      );
+      return;
+    }
+
+    if (!password) {
+      this.setLoginFeedback('Informe sua senha para fazer login.', 'error');
+      return;
+    }
+
+    this.isSubmittingLogin.set(true);
+
+    this.accessApi
+      .login({ login, password })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          // TODO: Store token securely (e.g., localStorage, session storage)
+          console.log('Login successful, token:', response.token);
+          this.isSubmittingLogin.set(false);
+          this.setLoginFeedback('Login realizado com sucesso!', 'success');
+          this.router.navigate(['/tasks']);
+        },
+        error: (error) => {
+          this.isSubmittingLogin.set(false);
+          this.setLoginFeedback(
+            'Erro ao fazer login. Verifique suas credenciais.',
+            'error',
+          );
+          console.error('Login error:', error);
+        },
+      });
   }
 
   protected submitForgotPassword(): void {
@@ -236,7 +283,13 @@ export class LoginPage {
     this.inviteFeedbackTone.set(tone);
   }
 
+  private setLoginFeedback(message: string, tone: Exclude<FeedbackTone, null>): void {
+    this.loginFeedback.set(message);
+    this.loginFeedbackTone.set(tone);
+  }
+
   private isValidEmail(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 }
+

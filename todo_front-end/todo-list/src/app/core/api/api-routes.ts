@@ -5,6 +5,8 @@ const backendOrigin =
 
 export const apiRoutes = {
   auth: {
+    login: `${backendOrigin}/auth/login`,
+    register: `${backendOrigin}/auth/register`,
     forgotPassword: `${backendOrigin}/auth/esqueci-senha`,
     requestInvite: `${backendOrigin}/auth/solicitar-convite`,
   },
