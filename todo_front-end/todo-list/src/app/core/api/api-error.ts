@@ -1,5 +1,5 @@
 const DEFAULT_BACKEND_UNAVAILABLE_MESSAGE =
-  'Backend indisponivel. Verifique se a API esta rodando em http://localhost:8080.';
+  'Nao foi possivel conectar ao servico agora. Tente novamente em instantes.';
 
 type ApiErrorBody = {
   readonly message?: unknown;
@@ -8,10 +8,10 @@ type ApiErrorBody = {
 
 export function extractApiErrorMessage(
   error: unknown,
-  backendUnavailableMessage = DEFAULT_BACKEND_UNAVAILABLE_MESSAGE,
+  serviceUnavailableMessage = DEFAULT_BACKEND_UNAVAILABLE_MESSAGE,
 ): string | null {
   if (isHttpStatusZero(error)) {
-    return backendUnavailableMessage;
+    return serviceUnavailableMessage;
   }
 
   const errorBody = getErrorBody(error);

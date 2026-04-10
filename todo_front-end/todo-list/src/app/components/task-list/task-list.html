@@ -199,7 +199,9 @@
           </div>
         </header>
 
-        <p class="task-list-panel__message">{{ syncMessage() }}</p>
+        @if (syncMessage()) {
+          <p class="task-list-panel__message">{{ syncMessage() }}</p>
+        }
 
         @if (isLoading()) {
           <div class="task-list-panel__empty">
@@ -581,7 +583,7 @@
 
           <div>
             <strong>Alterar senha</strong>
-            <p>Defina uma nova senha para deixar seu acesso pronto para a integração com o backend.</p>
+            <p>Defina uma nova senha para manter seu acesso atualizado e protegido.</p>
           </div>
         </div>
 

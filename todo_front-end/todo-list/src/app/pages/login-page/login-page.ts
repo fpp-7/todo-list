@@ -177,7 +177,7 @@ export class LoginPage {
         error: () => {
           this.isSubmittingForgotPassword.set(false);
           this.setForgotPasswordFeedback(
-            'N\u00E3o foi poss\u00EDvel enviar a recupera\u00E7\u00E3o agora. Verifique o backend e tente novamente.',
+            'N\u00E3o foi poss\u00EDvel enviar a recupera\u00E7\u00E3o agora. Tente novamente em instantes.',
             'error',
           );
         },
@@ -219,7 +219,7 @@ export class LoginPage {
         error: () => {
           this.isSubmittingInvite.set(false);
           this.setInviteFeedback(
-            'N\u00E3o foi poss\u00EDvel registrar o convite agora. Verifique o backend e tente novamente.',
+            'N\u00E3o foi poss\u00EDvel registrar o convite agora. Tente novamente em instantes.',
             'error',
           );
         },

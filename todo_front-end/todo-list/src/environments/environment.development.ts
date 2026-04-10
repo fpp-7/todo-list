@@ -1,4 +1,6 @@
+const localApiHost = globalThis.location?.hostname || 'localhost';
+
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:8080',
+  apiBaseUrl: `http://${localApiHost}:8080`,
 } as const;

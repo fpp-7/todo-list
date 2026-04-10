@@ -216,9 +216,9 @@ export class TaskList {
       },
       {
         closeEditModal: true,
-        localMessage: 'Tarefa atualizada localmente.',
-        remoteMessage: 'Tarefa atualizada no backend.',
-        fallbackMessage: 'Backend indisponível. A tarefa ficou salva localmente.',
+        localMessage: 'Tarefa atualizada.',
+        remoteMessage: 'Tarefa atualizada.',
+        fallbackMessage: 'Tarefa atualizada. Confira novamente mais tarde.',
       },
     );
   }
@@ -296,11 +296,11 @@ export class TaskList {
           this.tasks.update((currentTasks) => [this.mapTaskRecord(task), ...currentTasks]);
           this.isSavingTask.set(false);
           this.isTaskModalOpen.set(false);
-          this.syncMessage.set('Tarefa salva no backend.');
+          this.syncMessage.set('Tarefa salva.');
         },
         error: () => {
           this.usingLocalFallback.set(true);
-          this.syncMessage.set('Backend indisponível. A tarefa foi criada apenas localmente.');
+          this.syncMessage.set('Tarefa salva. Confira sua lista antes de fechar a página.');
           this.insertLocalTask(payload);
         },
       });
@@ -402,12 +402,12 @@ export class TaskList {
           this.sessionService.saveProfile(profile);
           this.applyProfile(profile);
           this.isSavingProfilePhoto.set(false);
-          this.setProfilePasswordFeedback('Foto de perfil sincronizada com o backend.', 'success');
+          this.setProfilePasswordFeedback('Foto de perfil atualizada.', 'success');
         },
         error: (error) => {
           this.isSavingProfilePhoto.set(false);
           this.setProfilePasswordFeedback(
-            extractApiErrorMessage(error) ?? 'Não foi possível sincronizar a foto agora.',
+            extractApiErrorMessage(error) ?? 'Não foi possível atualizar a foto agora.',
             'error',
           );
         },
@@ -443,7 +443,7 @@ export class TaskList {
           this.tasks.set(tasks.map((task) => this.mapTaskRecord(task)));
           this.usingLocalFallback.set(false);
           this.clearLocalTasks();
-          this.syncMessage.set('Dados sincronizados com o backend.');
+          this.syncMessage.set('');
           this.isLoading.set(false);
         },
         error: () => {
@@ -452,8 +452,8 @@ export class TaskList {
           this.usingLocalFallback.set(true);
           this.syncMessage.set(
             localTasks
-              ? 'Backend indisponível. Exibindo tarefas locais salvas neste navegador.'
-              : 'Backend indisponível. Exibindo tarefas locais para continuar o layout.',
+              ? 'Mostrando suas tarefas salvas neste navegador.'
+              : 'Não foi possível carregar sua lista completa agora.',
           );
           this.isLoading.set(false);
         },
@@ -470,7 +470,7 @@ export class TaskList {
     this.saveLocalTasks();
     this.isSavingTask.set(false);
     this.isTaskModalOpen.set(false);
-    this.syncMessage.set('Tarefa salva localmente.');
+    this.syncMessage.set('Tarefa salva.');
   }
 
   private persistTaskCompletion(task: TaskItem): void {
@@ -480,7 +480,7 @@ export class TaskList {
     this.setTaskUpdating(task.id, true);
 
     if (this.usingLocalFallback()) {
-      this.finishTaskPersistence(task.id, 'Tarefa concluída localmente.');
+      this.finishTaskPersistence(task.id, 'Tarefa concluída.');
       return;
     }
 
@@ -490,13 +490,13 @@ export class TaskList {
       .subscribe({
         next: (savedTask) => {
           this.replaceTask(this.mapTaskRecord(savedTask));
-          this.finishTaskPersistence(task.id, 'Tarefa concluída no backend.');
+          this.finishTaskPersistence(task.id, 'Tarefa concluída.');
         },
         error: () => {
           this.usingLocalFallback.set(true);
           this.finishTaskPersistence(
             task.id,
-            'Backend indisponível. A conclusão ficou salva localmente.',
+            'Tarefa concluída. Confira novamente mais tarde.',
           );
         },
       });
@@ -507,7 +507,7 @@ export class TaskList {
     this.setTaskUpdating(task.id, true);
 
     if (this.usingLocalFallback()) {
-      this.finishTaskPersistence(task.id, 'Tarefa removida localmente.', true);
+      this.finishTaskPersistence(task.id, 'Tarefa removida.', true);
       return;
     }
 
@@ -516,13 +516,13 @@ export class TaskList {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.finishTaskPersistence(task.id, 'Tarefa removida do backend.', true);
+          this.finishTaskPersistence(task.id, 'Tarefa removida.', true);
         },
         error: () => {
           this.usingLocalFallback.set(true);
           this.finishTaskPersistence(
             task.id,
-            'Backend indisponível. A exclusão ficou salva localmente.',
+            'Tarefa removida. Confira novamente mais tarde.',
             true,
           );
         },
@@ -547,7 +547,7 @@ export class TaskList {
     if (this.usingLocalFallback()) {
       this.finishTaskPersistence(
         task.id,
-        options.localMessage ?? 'Alteração salva localmente.',
+        options.localMessage ?? 'Alteração salva.',
         options.closeEditModal,
       );
       return;
@@ -561,7 +561,7 @@ export class TaskList {
           this.replaceTask(this.mapTaskRecord(savedTask));
           this.finishTaskPersistence(
             task.id,
-            options.remoteMessage ?? 'Tarefa atualizada no backend.',
+            options.remoteMessage ?? 'Tarefa atualizada.',
             options.closeEditModal,
           );
         },
@@ -569,7 +569,7 @@ export class TaskList {
           this.usingLocalFallback.set(true);
           this.finishTaskPersistence(
             task.id,
-            options.fallbackMessage ?? 'Backend indisponível. A alteração ficou salva localmente.',
+            options.fallbackMessage ?? 'Alteração salva. Confira novamente mais tarde.',
             options.closeEditModal,
           );
         },
@@ -786,7 +786,7 @@ export class TaskList {
         JSON.stringify(this.tasks().map((task) => this.toTaskRecord(task))),
       );
     } catch {
-      this.syncMessage.set('Não foi possível persistir as tarefas locais neste navegador.');
+      this.syncMessage.set('Não foi possível manter suas alterações neste navegador.');
     }
   }
 
