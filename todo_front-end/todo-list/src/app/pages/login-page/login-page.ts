@@ -142,13 +142,12 @@ export class LoginPage {
           this.setLoginFeedback('Login realizado com sucesso!', 'success');
           this.router.navigateByUrl(this.getPostLoginRedirectUrl());
         },
-        error: (error) => {
+        error: () => {
           this.isSubmittingLogin.set(false);
           this.setLoginFeedback(
             'Erro ao fazer login. Verifique suas credenciais.',
             'error',
           );
-          console.error('Login error:', error);
         },
       });
   }

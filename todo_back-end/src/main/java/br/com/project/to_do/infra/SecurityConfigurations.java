@@ -38,7 +38,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class SecurityConfigarations {
+public class SecurityConfigurations {
 
     private final SecurityFilter securityFilter;
     private final ObjectMapper objectMapper;

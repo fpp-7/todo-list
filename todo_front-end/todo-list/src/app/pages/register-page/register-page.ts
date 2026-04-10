@@ -2,13 +2,10 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { extractApiErrorMessage } from '../../core/api/api-error';
 import { AccessApiService } from '../../core/auth/access-api.service';
 
 type FeedbackTone = 'success' | 'error' | null;
-
-type ApiFieldError = {
-  readonly message?: string;
-};
 
 @Component({
   selector: 'app-register-page',
@@ -82,7 +79,7 @@ export class RegisterPage {
         error: (error) => {
           this.isSubmittingRegister.set(false);
           this.setRegisterFeedback(
-            this.extractErrorMessage(error) ?? 'Nao foi possivel criar a conta agora.',
+            extractApiErrorMessage(error) ?? 'Nao foi possivel criar a conta agora.',
             'error',
           );
         },
@@ -92,45 +89,6 @@ export class RegisterPage {
   private setRegisterFeedback(message: string, tone: Exclude<FeedbackTone, null>): void {
     this.registerFeedback.set(message);
     this.registerFeedbackTone.set(tone);
-  }
-
-  private extractErrorMessage(error: unknown): string | null {
-    if (this.isHttpStatusZero(error)) {
-      return 'Backend indisponivel. Verifique se a API esta rodando em http://localhost:8080.';
-    }
-
-    const errorBody = this.getErrorBody(error);
-
-    if (typeof errorBody?.message === 'string') {
-      return errorBody.message;
-    }
-
-    const firstFieldError = errorBody?.fieldErrors?.[0];
-
-    return typeof firstFieldError?.message === 'string' ? firstFieldError.message : null;
-  }
-
-  private isHttpStatusZero(error: unknown): boolean {
-    return (
-      error !== null &&
-      typeof error === 'object' &&
-      'status' in error &&
-      error.status === 0
-    );
-  }
-
-  private getErrorBody(error: unknown): { message?: string; fieldErrors?: ApiFieldError[] } | null {
-    if (
-      error === null ||
-      typeof error !== 'object' ||
-      !('error' in error) ||
-      error.error === null ||
-      typeof error.error !== 'object'
-    ) {
-      return null;
-    }
-
-    return error.error as { message?: string; fieldErrors?: ApiFieldError[] };
   }
 
   private isValidEmail(email: string): boolean {

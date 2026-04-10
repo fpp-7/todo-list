@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { extractApiErrorMessage } from '../../core/api/api-error';
 import { AccessApiService } from '../../core/auth/access-api.service';
 
 type FeedbackTone = 'success' | 'error' | null;
@@ -67,7 +68,7 @@ export class ResetPasswordPage {
         error: (error) => {
           this.isSubmittingReset.set(false);
           this.setResetFeedback(
-            this.extractErrorMessage(error) ?? 'Nao foi possivel redefinir a senha agora.',
+            extractApiErrorMessage(error) ?? 'Nao foi possivel redefinir a senha agora.',
             'error',
           );
         },
@@ -77,21 +78,5 @@ export class ResetPasswordPage {
   private setResetFeedback(message: string, tone: Exclude<FeedbackTone, null>): void {
     this.resetFeedback.set(message);
     this.resetFeedbackTone.set(tone);
-  }
-
-  private extractErrorMessage(error: unknown): string | null {
-    if (
-      error &&
-      typeof error === 'object' &&
-      'error' in error &&
-      error.error &&
-      typeof error.error === 'object' &&
-      'message' in error.error &&
-      typeof error.error.message === 'string'
-    ) {
-      return error.error.message;
-    }
-
-    return null;
   }
 }
