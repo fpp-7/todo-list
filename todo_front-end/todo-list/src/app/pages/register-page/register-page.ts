@@ -6,6 +6,10 @@ import { AccessApiService } from '../../core/auth/access-api.service';
 
 type FeedbackTone = 'success' | 'error' | null;
 
+type ApiFieldError = {
+  readonly message?: string;
+};
+
 @Component({
   selector: 'app-register-page',
   imports: [FormsModule, RouterLink],
@@ -22,6 +26,8 @@ export class RegisterPage {
   protected readonly registerFeedbackTone = signal<FeedbackTone>(null);
   protected readonly showPassword = signal(false);
 
+  protected registerFirstName = '';
+  protected registerLastName = '';
   protected registerEmail = '';
   protected registerPassword = '';
   protected registerConfirmPassword = '';
@@ -31,12 +37,24 @@ export class RegisterPage {
   }
 
   protected submitRegister(): void {
+    const firstName = this.registerFirstName.trim();
+    const lastName = this.registerLastName.trim();
     const login = this.registerEmail.trim().toLowerCase();
     const password = this.registerPassword.trim();
     const confirmPassword = this.registerConfirmPassword.trim();
 
+    if (!firstName) {
+      this.setRegisterFeedback('Informe seu nome para criar a conta.', 'error');
+      return;
+    }
+
+    if (!lastName) {
+      this.setRegisterFeedback('Informe seu sobrenome para criar a conta.', 'error');
+      return;
+    }
+
     if (!this.isValidEmail(login)) {
-      this.setRegisterFeedback('Informe um e-mail válido para criar a conta.', 'error');
+      this.setRegisterFeedback('Informe um e-mail valido para criar a conta.', 'error');
       return;
     }
 
@@ -46,14 +64,14 @@ export class RegisterPage {
     }
 
     if (password !== confirmPassword) {
-      this.setRegisterFeedback('A confirmação da senha precisa ser igual à senha.', 'error');
+      this.setRegisterFeedback('A confirmacao da senha precisa ser igual a senha.', 'error');
       return;
     }
 
     this.isSubmittingRegister.set(true);
 
     this.accessApi
-      .register({ login, password })
+      .register({ firstName, lastName, login, password })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
@@ -64,7 +82,7 @@ export class RegisterPage {
         error: (error) => {
           this.isSubmittingRegister.set(false);
           this.setRegisterFeedback(
-            this.extractErrorMessage(error) ?? 'Não foi possível criar a conta agora.',
+            this.extractErrorMessage(error) ?? 'Nao foi possivel criar a conta agora.',
             'error',
           );
         },
@@ -77,19 +95,42 @@ export class RegisterPage {
   }
 
   private extractErrorMessage(error: unknown): string | null {
-    if (
-      error &&
-      typeof error === 'object' &&
-      'error' in error &&
-      error.error &&
-      typeof error.error === 'object' &&
-      'message' in error.error &&
-      typeof error.error.message === 'string'
-    ) {
-      return error.error.message;
+    if (this.isHttpStatusZero(error)) {
+      return 'Backend indisponivel. Verifique se a API esta rodando em http://localhost:8080.';
     }
 
-    return null;
+    const errorBody = this.getErrorBody(error);
+
+    if (typeof errorBody?.message === 'string') {
+      return errorBody.message;
+    }
+
+    const firstFieldError = errorBody?.fieldErrors?.[0];
+
+    return typeof firstFieldError?.message === 'string' ? firstFieldError.message : null;
+  }
+
+  private isHttpStatusZero(error: unknown): boolean {
+    return (
+      error !== null &&
+      typeof error === 'object' &&
+      'status' in error &&
+      error.status === 0
+    );
+  }
+
+  private getErrorBody(error: unknown): { message?: string; fieldErrors?: ApiFieldError[] } | null {
+    if (
+      error === null ||
+      typeof error !== 'object' ||
+      !('error' in error) ||
+      error.error === null ||
+      typeof error.error !== 'object'
+    ) {
+      return null;
+    }
+
+    return error.error as { message?: string; fieldErrors?: ApiFieldError[] };
   }
 
   private isValidEmail(email: string): boolean {

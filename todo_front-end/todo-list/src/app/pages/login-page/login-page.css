@@ -158,6 +158,12 @@
   min-height: 2rem;
 }
 
+.login-shell--register .showcase-content::after {
+  content: '';
+  display: block;
+  min-height: 2rem;
+}
+
 .primary-action,
 .field-shell__toggle,
 .dot-selector__item {
@@ -304,6 +310,12 @@
 .login-form {
   display: grid;
   gap: 1.15rem;
+}
+
+.register-name-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
 }
 
 .field-group {
@@ -915,6 +927,10 @@ a:focus-visible {
   .form-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .register-name-grid {
+    grid-template-columns: 1fr;
   }
 
   .access-modal {

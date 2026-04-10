@@ -7,6 +7,7 @@ import br.com.project.to_do.dto.OperationStatusResponseDTO;
 import br.com.project.to_do.dto.PasswordResetConfirmRequestDTO;
 import br.com.project.to_do.dto.PasswordResetRequestDTO;
 import br.com.project.to_do.dto.ProfileResponseDTO;
+import br.com.project.to_do.dto.RegisterRequestDTO;
 import br.com.project.to_do.dto.TokenRefreshRequestDTO;
 import br.com.project.to_do.dto.TokenRefreshResponseDTO;
 import br.com.project.to_do.exception.BusinessRuleException;
@@ -70,7 +71,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<OperationStatusResponseDTO> register(@RequestBody @Valid AuthenticationDTO data) {
+    public ResponseEntity<OperationStatusResponseDTO> register(@RequestBody @Valid RegisterRequestDTO data) {
         repository.findByLogin(data.login()).ifPresent(existingUser -> {
             throw new BusinessRuleException("Ja existe uma conta cadastrada com este e-mail.");
         });
@@ -78,7 +79,7 @@ public class AuthenticationController {
         Member member = new Member(
                 data.login(),
                 passwordEncoder.encode(data.password()),
-                extractDisplayName(data.login())
+                data.displayName()
         );
         repository.save(member);
 
@@ -117,9 +118,4 @@ public class AuthenticationController {
         ));
     }
 
-    private String extractDisplayName(String login) {
-        String localPart = login.split("@")[0];
-        String normalized = localPart.replace('.', ' ').replace('_', ' ').trim();
-        return normalized.isBlank() ? login : normalized;
-    }
 }

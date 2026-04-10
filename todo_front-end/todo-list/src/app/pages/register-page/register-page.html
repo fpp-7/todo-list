@@ -1,4 +1,4 @@
-<main class="login-shell">
+<main class="login-shell login-shell--register">
   <section class="showcase-panel">
     <div class="showcase-panel__glow"></div>
     <div class="showcase-content">
@@ -30,6 +30,40 @@
       </div>
 
       <form class="login-form" (ngSubmit)="submitRegister()">
+        <div class="register-name-grid">
+          <label class="field-group">
+            <span class="field-group__label">Nome</span>
+            <span class="field-shell">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 21a8 8 0 1 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Seu nome"
+                autocomplete="given-name"
+                [(ngModel)]="registerFirstName"
+                name="registerFirstName"
+              />
+            </span>
+          </label>
+
+          <label class="field-group">
+            <span class="field-group__label">Sobrenome</span>
+            <span class="field-shell">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 21a8 8 0 1 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Seu sobrenome"
+                autocomplete="family-name"
+                [(ngModel)]="registerLastName"
+                name="registerLastName"
+              />
+            </span>
+          </label>
+        </div>
+
         <label class="field-group">
           <span class="field-group__label">E-mail</span>
           <span class="field-shell">

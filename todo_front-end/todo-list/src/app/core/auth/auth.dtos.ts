@@ -3,6 +3,11 @@ export type AuthenticationDTO = {
   readonly password: string;
 };
 
+export type RegisterRequestDTO = AuthenticationDTO & {
+  readonly firstName: string;
+  readonly lastName: string;
+};
+
 export type ProfileDTO = {
   readonly id: number;
   readonly email: string;

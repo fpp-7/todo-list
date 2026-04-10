@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import br.com.project.to_do.dto.AuthenticationDTO;
 import br.com.project.to_do.dto.LoginResponseDTO;
 import br.com.project.to_do.dto.PasswordResetConfirmRequestDTO;
+import br.com.project.to_do.dto.RegisterRequestDTO;
 import br.com.project.to_do.dto.TaskRequestDTO;
 import br.com.project.to_do.dto.TokenRefreshRequestDTO;
 import br.com.project.to_do.dto.UpdatePasswordRequestDTO;
@@ -69,7 +70,12 @@ class TodoApiIntegrationTest {
 
     @Test
     void shouldRegisterAndLoginReturningTokenAndProfile() throws Exception {
-        AuthenticationDTO request = new AuthenticationDTO("new.user@example.com", "senha123");
+        RegisterRequestDTO request = new RegisterRequestDTO(
+                "New",
+                "User",
+                "new.user@example.com",
+                "senha123"
+        );
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,11 +85,14 @@ class TodoApiIntegrationTest {
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(
+                                new AuthenticationDTO(request.login(), request.password())
+                        )))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.refreshToken").isNotEmpty())
-                .andExpect(jsonPath("$.profile.email").value("new.user@example.com"));
+                .andExpect(jsonPath("$.profile.email").value("new.user@example.com"))
+                .andExpect(jsonPath("$.profile.displayName").value("New User"));
     }
 
     @Test

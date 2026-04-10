@@ -7,6 +7,7 @@ import {
   LoginResponseDTO,
   OperationStatusResponseDTO,
   PasswordResetConfirmDTO,
+  RegisterRequestDTO,
   TokenRefreshRequestDTO,
   TokenRefreshResponseDTO,
 } from './auth.dtos';
@@ -44,7 +45,7 @@ export class AccessApiService {
     return this.http.post<OperationStatusResponseDTO>(apiRoutes.auth.logout, payload);
   }
 
-  register(payload: AuthenticationDTO): Observable<OperationStatusResponseDTO> {
+  register(payload: RegisterRequestDTO): Observable<OperationStatusResponseDTO> {
     return this.http.post<OperationStatusResponseDTO>(apiRoutes.auth.register, payload);
   }
 
