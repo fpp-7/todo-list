@@ -9,8 +9,8 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, finalize, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { apiRoutes } from '../api/api-routes';
-import { SessionService } from './session.service';
 import { TokenRefreshResponseDTO } from './auth.dtos';
+import { SessionService } from './session.service';
 
 let refreshRequest$: Observable<TokenRefreshResponseDTO> | null = null;
 
@@ -18,24 +18,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const sessionService = inject(SessionService);
   const authHttp = new HttpClient(inject(HttpBackend));
   const router = inject(Router);
-  const token = sessionService.getToken();
   const isAuthRequest = req.url.includes('/auth/');
-
-  const request = token ? withBearerToken(req, token) : req;
+  const request = withCredentials(req);
 
   return next(request).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse && error.status === 401 && !isAuthRequest) {
-        const refreshToken = sessionService.getRefreshToken();
-
-        if (!refreshToken) {
-          redirectToLogin(sessionService, router);
-          return throwError(() => error);
-        }
-
         if (!refreshRequest$) {
           refreshRequest$ = authHttp
-            .post<TokenRefreshResponseDTO>(apiRoutes.auth.refresh, { refreshToken })
+            .post<TokenRefreshResponseDTO>(apiRoutes.auth.refresh, {}, { withCredentials: true })
             .pipe(
               tap((tokens) => sessionService.saveTokens(tokens)),
               finalize(() => {
@@ -46,7 +37,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         }
 
         return refreshRequest$.pipe(
-          switchMap((tokens) => next(withBearerToken(req, tokens.token))),
+          switchMap(() => next(withCredentials(req))),
           catchError((refreshError: unknown) => {
             redirectToLogin(sessionService, router);
             return throwError(() => refreshError);
@@ -59,12 +50,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   );
 };
 
-function withBearerToken<T>(request: HttpRequest<T>, token: string): HttpRequest<T> {
-  return request.clone({
-    setHeaders: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+function withCredentials<T>(request: HttpRequest<T>): HttpRequest<T> {
+  return request.clone({ withCredentials: true });
 }
 
 function redirectToLogin(sessionService: SessionService, router: Router): void {

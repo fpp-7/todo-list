@@ -20,6 +20,7 @@ public class ProfileService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
+    private final ProfilePhotoStorageService profilePhotoStorageService;
 
     public Member getProfile(Member member) {
         return member;
@@ -41,7 +42,12 @@ public class ProfileService {
     }
 
     public Member updatePhoto(Member member, UpdatePhotoRequestDTO requestDTO) {
-        member.setPhotoDataUrl(normalize(requestDTO.photoDataUrl()));
+        String normalizedPhoto = normalize(requestDTO.photoDataUrl());
+        member.setPhotoDataUrl(
+                normalizedPhoto == null
+                        ? null
+                        : profilePhotoStorageService.storeProfilePhoto(member.getId(), normalizedPhoto)
+        );
         log.info("Foto de perfil atualizada para o membro {}", member.getId());
         return memberRepository.save(member);
     }

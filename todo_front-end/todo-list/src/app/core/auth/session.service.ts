@@ -3,58 +3,33 @@ import { LoginResponseDTO, ProfileDTO, TokenRefreshResponseDTO } from './auth.dt
 
 export type SessionProfile = ProfileDTO;
 
-type JwtPayload = {
-  readonly exp?: number;
-};
-
 @Injectable({
   providedIn: 'root',
 })
 export class SessionService {
-  private readonly TOKEN_KEY = 'auth-token';
-  private readonly REFRESH_TOKEN_KEY = 'auth-refresh-token';
+  private readonly SESSION_KEY = 'auth-session';
   private readonly PROFILE_KEY = 'auth-profile';
 
   saveSession(session: LoginResponseDTO): void {
-    this.saveToken(session.token);
-    this.saveRefreshToken(session.refreshToken);
+    this.markActiveSession();
     this.saveProfile(session.profile);
   }
 
-  saveTokens(tokens: TokenRefreshResponseDTO): void {
-    this.saveToken(tokens.token);
-    this.saveRefreshToken(tokens.refreshToken);
-  }
-
-  saveToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-  }
-
-  saveRefreshToken(refreshToken: string): void {
-    localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+  saveTokens(_tokens: TokenRefreshResponseDTO): void {
+    this.markActiveSession();
   }
 
   saveProfile(profile: SessionProfile): void {
+    this.markActiveSession();
     localStorage.setItem(this.PROFILE_KEY, JSON.stringify(profile));
   }
 
   getToken(): string | null {
-    const token = localStorage.getItem(this.TOKEN_KEY);
-
-    if (!token) {
-      return null;
-    }
-
-    if (this.isTokenExpired(token)) {
-      this.clearAccessToken();
-      return null;
-    }
-
-    return token;
+    return null;
   }
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    return null;
   }
 
   getProfile(): SessionProfile | null {
@@ -77,51 +52,23 @@ export class SessionService {
   }
 
   clearAccessToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    this.clearSession();
   }
 
   clearSession(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    localStorage.removeItem(this.SESSION_KEY);
     localStorage.removeItem(this.PROFILE_KEY);
   }
 
   hasToken(): boolean {
-    return this.getToken() !== null;
+    return this.hasActiveSession();
   }
 
   hasActiveSession(): boolean {
-    return this.hasToken() || this.getRefreshToken() !== null;
+    return localStorage.getItem(this.SESSION_KEY) === 'true' || this.getProfile() !== null;
   }
 
-  private isTokenExpired(token: string): boolean {
-    const payload = this.decodeJwtPayload(token);
-
-    if (!payload?.exp) {
-      return true;
-    }
-
-    return payload.exp * 1000 <= Date.now();
-  }
-
-  private decodeJwtPayload(token: string): JwtPayload | null {
-    const [, rawPayload] = token.split('.');
-
-    if (!rawPayload) {
-      return null;
-    }
-
-    try {
-      const normalizedPayload = rawPayload.replace(/-/g, '+').replace(/_/g, '/');
-      const paddingLength = (4 - (normalizedPayload.length % 4)) % 4;
-      const paddedPayload = normalizedPayload.padEnd(
-        normalizedPayload.length + paddingLength,
-        '=',
-      );
-
-      return JSON.parse(atob(paddedPayload)) as JwtPayload;
-    } catch {
-      return null;
-    }
+  private markActiveSession(): void {
+    localStorage.setItem(this.SESSION_KEY, 'true');
   }
 }

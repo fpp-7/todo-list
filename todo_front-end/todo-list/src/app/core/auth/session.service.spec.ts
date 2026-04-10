@@ -14,12 +14,10 @@ describe('SessionService', () => {
     localStorage.clear();
   });
 
-  it('should keep valid JWT sessions available', () => {
-    const token = createJwtWithExpiration(Math.floor(Date.now() / 1000) + 3600);
-
+  it('should keep only non-sensitive session data in storage', () => {
     service.saveSession({
-      token,
-      refreshToken: 'refresh-token',
+      token: 'access-token-from-api-body',
+      refreshToken: 'refresh-token-from-api-body',
       profile: {
         id: 1,
         email: 'usuario@empresa.com',
@@ -28,29 +26,24 @@ describe('SessionService', () => {
       },
     });
 
-    expect(service.getToken()).toBe(token);
-    expect(service.getRefreshToken()).toBe('refresh-token');
-    expect(service.hasToken()).toBeTrue();
+    expect(service.getToken()).toBeNull();
+    expect(service.getRefreshToken()).toBeNull();
+    expect(localStorage.getItem('auth-session')).toBe('true');
+    expect(localStorage.getItem('auth-token')).toBeNull();
+    expect(localStorage.getItem('auth-refresh-token')).toBeNull();
     expect(service.hasActiveSession()).toBeTrue();
     expect(service.getProfile()?.email).toBe('usuario@empresa.com');
   });
 
-  it('should clear only access token when JWT is expired', () => {
-    service.saveRefreshToken('refresh-token');
-    service.saveToken(createJwtWithExpiration(Math.floor(Date.now() / 1000) - 60));
+  it('should clear session metadata', () => {
+    service.saveTokens({
+      token: 'access-token',
+      refreshToken: 'refresh-token',
+    });
 
-    expect(service.getToken()).toBeNull();
-    expect(service.getRefreshToken()).toBe('refresh-token');
-    expect(service.hasToken()).toBeFalse();
-    expect(service.hasActiveSession()).toBeTrue();
+    service.clearSession();
+
+    expect(service.hasActiveSession()).toBeFalse();
+    expect(localStorage.getItem('auth-session')).toBeNull();
   });
 });
-
-function createJwtWithExpiration(exp: number): string {
-  const payload = btoa(JSON.stringify({ exp }))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-  return `header.${payload}.signature`;
-}

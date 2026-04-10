@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -23,9 +24,11 @@ import br.com.project.to_do.repository.PasswordResetTokenRepository;
 import br.com.project.to_do.repository.TaskRepository;
 import br.com.project.to_do.service.SecureTokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,6 +92,8 @@ class TodoApiIntegrationTest {
                                 new AuthenticationDTO(request.login(), request.password())
                         )))
                 .andExpect(status().isOk())
+                .andExpect(cookie().exists("todo_access_token"))
+                .andExpect(cookie().exists("todo_refresh_token"))
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.refreshToken").isNotEmpty())
                 .andExpect(jsonPath("$.profile.email").value("new.user@example.com"))
@@ -106,6 +111,8 @@ class TodoApiIntegrationTest {
                                 new TokenRefreshRequestDTO(loginResponse.refreshToken())
                         )))
                 .andExpect(status().isOk())
+                .andExpect(cookie().exists("todo_access_token"))
+                .andExpect(cookie().exists("todo_refresh_token"))
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.refreshToken").isNotEmpty())
                 .andReturn()
@@ -124,6 +131,37 @@ class TodoApiIntegrationTest {
         mockMvc.perform(get("/task")
                         .header("Authorization", "Bearer " + refreshedAccessToken))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAuthenticateProtectedEndpointsWithHttpOnlyCookie() throws Exception {
+        createMember("cookie@example.com", "senha123", "Cookie");
+
+        var loginResult = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new AuthenticationDTO("cookie@example.com", "senha123")
+                        )))
+                .andExpect(status().isOk())
+                .andExpect(cookie().httpOnly("todo_access_token", true))
+                .andExpect(cookie().httpOnly("todo_refresh_token", true))
+                .andReturn();
+
+        Cookie accessCookie = loginResult.getResponse().getCookie("todo_access_token");
+        Cookie refreshCookie = loginResult.getResponse().getCookie("todo_refresh_token");
+
+        mockMvc.perform(get("/task").cookie(accessCookie))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists("todo_access_token"))
+                .andExpect(cookie().exists("todo_refresh_token"));
+
+        mockMvc.perform(post("/auth/logout").cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andExpect(cookie().maxAge("todo_access_token", 0))
+                .andExpect(cookie().maxAge("todo_refresh_token", 0));
     }
 
     @Test
@@ -243,9 +281,9 @@ class TodoApiIntegrationTest {
         mockMvc.perform(put("/profile/photo")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdatePhotoRequestDTO("data:image/png;base64,abc"))))
+                        .content(objectMapper.writeValueAsString(new UpdatePhotoRequestDTO("data:image/png;base64,AQID"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.photoDataUrl").value("data:image/png;base64,abc"));
+                .andExpect(jsonPath("$.photoDataUrl").value(Matchers.startsWith("/uploads/profile-photos/")));
 
         mockMvc.perform(put("/profile/password")
                         .header("Authorization", "Bearer " + token)

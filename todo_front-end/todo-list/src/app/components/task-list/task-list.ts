@@ -14,6 +14,7 @@ import { ProfileDTO } from '../../core/auth/auth.dtos';
 import { AccessApiService } from '../../core/auth/access-api.service';
 import { ProfileApiService } from '../../core/profile/profile-api.service';
 import { TaskForm } from '../task-form/task-form';
+import { environment } from '../../../environments/environment';
 
 type TaskFilter = 'Todas' | 'Hoje' | 'Em andamento' | 'Planejadas' | 'Concluídas';
 type TaskStatus = 'Hoje' | 'Em andamento' | 'Planejada' | 'Concluída';
@@ -198,14 +199,10 @@ export class TaskList {
   }
 
   protected logout(): void {
-    const refreshToken = this.sessionService.getRefreshToken();
-
-    if (refreshToken) {
-      this.accessApi
-        .logout({ refreshToken })
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({ error: () => undefined });
-    }
+    this.accessApi
+      .logout()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => undefined });
 
     this.sessionService.clearSession();
     this.router.navigate(['/login']);
@@ -484,7 +481,19 @@ export class TaskList {
   private applyProfile(profile: ProfileDTO): void {
     this.profileName.set(profile.displayName || profile.email);
     this.profileEmail.set(profile.email);
-    this.profileImageUrl.set(profile.photoDataUrl);
+    this.profileImageUrl.set(this.resolveProfilePhotoUrl(profile.photoDataUrl));
+  }
+
+  private resolveProfilePhotoUrl(photoDataUrl: string | null): string | null {
+    if (!photoDataUrl) {
+      return null;
+    }
+
+    if (photoDataUrl.startsWith('/')) {
+      return `${environment.apiBaseUrl}${photoDataUrl}`;
+    }
+
+    return photoDataUrl;
   }
 
   private loadTasks(): void {

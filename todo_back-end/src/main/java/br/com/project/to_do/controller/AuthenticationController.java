@@ -13,9 +13,12 @@ import br.com.project.to_do.dto.TokenRefreshResponseDTO;
 import br.com.project.to_do.exception.BusinessRuleException;
 import br.com.project.to_do.model.Member;
 import br.com.project.to_do.repository.MemberRepository;
+import br.com.project.to_do.service.AuthCookieService;
 import br.com.project.to_do.service.PasswordResetService;
 import br.com.project.to_do.service.RefreshTokenService;
 import br.com.project.to_do.service.TokenService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -42,15 +45,20 @@ public class AuthenticationController {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final PasswordResetService passwordResetService;
+    private final AuthCookieService authCookieService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data) {
+    public ResponseEntity<LoginResponseDTO> login(
+            @RequestBody @Valid AuthenticationDTO data,
+            HttpServletResponse response
+    ) {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
         var auth = authenticationManager.authenticate(usernamePassword);
         Member member = (Member) auth.getPrincipal();
         String token = tokenService.generateToken(member);
         String refreshToken = refreshTokenService.issueToken(member);
 
+        authCookieService.addAuthCookies(response, token, refreshToken);
         log.info("Login realizado com sucesso para {}", member.getLogin());
         return ResponseEntity.ok(new LoginResponseDTO(
                 token,
@@ -60,13 +68,25 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<TokenRefreshResponseDTO> refresh(@RequestBody @Valid TokenRefreshRequestDTO requestDTO) {
-        return ResponseEntity.ok(refreshTokenService.rotateToken(requestDTO.refreshToken()));
+    public ResponseEntity<TokenRefreshResponseDTO> refresh(
+            @RequestBody(required = false) TokenRefreshRequestDTO requestDTO,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        String refreshToken = resolveRefreshToken(requestDTO, request);
+        TokenRefreshResponseDTO tokens = refreshTokenService.rotateToken(refreshToken);
+        authCookieService.addAuthCookies(response, tokens.token(), tokens.refreshToken());
+        return ResponseEntity.ok(tokens);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<OperationStatusResponseDTO> logout(@RequestBody @Valid TokenRefreshRequestDTO requestDTO) {
-        refreshTokenService.revokeToken(requestDTO.refreshToken());
+    public ResponseEntity<OperationStatusResponseDTO> logout(
+            @RequestBody(required = false) TokenRefreshRequestDTO requestDTO,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        resolveOptionalRefreshToken(requestDTO, request).ifPresent(refreshTokenService::revokeToken);
+        authCookieService.clearAuthCookies(response);
         return ResponseEntity.ok(new OperationStatusResponseDTO("SUCCESS", "Sessao encerrada com sucesso."));
     }
 
@@ -116,6 +136,24 @@ public class AuthenticationController {
                 "RECEIVED",
                 "Solicitacao de convite registrada com sucesso."
         ));
+    }
+
+    private String resolveRefreshToken(TokenRefreshRequestDTO requestDTO, HttpServletRequest request) {
+        return resolveOptionalRefreshToken(requestDTO, request)
+                .orElseThrow(() -> new br.com.project.to_do.exception.InvalidTokenException(
+                        "Refresh token invalido ou expirado."
+                ));
+    }
+
+    private java.util.Optional<String> resolveOptionalRefreshToken(
+            TokenRefreshRequestDTO requestDTO,
+            HttpServletRequest request
+    ) {
+        if (requestDTO != null && requestDTO.refreshToken() != null && !requestDTO.refreshToken().isBlank()) {
+            return java.util.Optional.of(requestDTO.refreshToken());
+        }
+
+        return authCookieService.resolveRefreshToken(request);
     }
 
 }

@@ -112,4 +112,11 @@ describe('TaskList', () => {
     expect(confirmSpy).toHaveBeenCalled();
     expect(taskApiService.deleteTask).toHaveBeenCalledOnceWith(task.id);
   });
+
+  it('should call logout endpoint without exposing refresh token', () => {
+    (component as any).logout();
+
+    expect(accessApiService.logout).toHaveBeenCalledOnceWith();
+    expect(localStorage.getItem('auth-session')).toBeNull();
+  });
 });

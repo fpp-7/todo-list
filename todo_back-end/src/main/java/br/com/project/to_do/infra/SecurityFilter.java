@@ -2,6 +2,7 @@ package br.com.project.to_do.infra;
 
 import br.com.project.to_do.exception.InvalidTokenException;
 import br.com.project.to_do.repository.MemberRepository;
+import br.com.project.to_do.service.AuthCookieService;
 import br.com.project.to_do.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,6 +25,7 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     private final TokenService tokenService;
     private final MemberRepository memberRepository;
+    private final AuthCookieService authCookieService;
 
     @Override
     protected void doFilterInternal(
@@ -56,7 +58,7 @@ public class SecurityFilter extends OncePerRequestFilter {
     private String recoverToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
+            return authCookieService.resolveAccessToken(request).orElse(null);
         }
 
         return authHeader.replace("Bearer ", "").trim();

@@ -71,7 +71,7 @@ describe('LoginPage', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should authenticate and persist the JWT session', () => {
+  it('should authenticate and persist safe session metadata', () => {
     (component as any).loginEmail = 'usuario@empresa.com';
     (component as any).loginPassword = 'senha123';
 
@@ -81,7 +81,9 @@ describe('LoginPage', () => {
       login: 'usuario@empresa.com',
       password: 'senha123',
     });
-    expect(localStorage.getItem('auth-token')).toBeTruthy();
+    expect(localStorage.getItem('auth-session')).toBe('true');
+    expect(localStorage.getItem('auth-token')).toBeNull();
+    expect(localStorage.getItem('auth-refresh-token')).toBeNull();
     expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/tasks');
   });
 
