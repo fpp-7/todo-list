@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
-import { TaskList } from './components/task-list/task-list';
-import { LoginPage } from './pages/login-page/login-page';
+import { authGuard, publicOnlyGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -10,11 +9,28 @@ export const routes: Routes = [
   },
   {
     path: 'login',
-    component: LoginPage,
+    loadComponent: () => import('./pages/login-page/login-page').then((page) => page.LoginPage),
+    canActivate: [publicOnlyGuard],
+  },
+  {
+    path: 'register',
+    loadComponent: () =>
+      import('./pages/register-page/register-page').then((page) => page.RegisterPage),
+    canActivate: [publicOnlyGuard],
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password-page/reset-password-page').then(
+        (page) => page.ResetPasswordPage,
+      ),
+    canActivate: [publicOnlyGuard],
   },
   {
     path: 'tasks',
-    component: TaskList,
+    loadComponent: () =>
+      import('./components/task-list/task-list').then((component) => component.TaskList),
+    canActivate: [authGuard],
   },
   {
     path: 'dashboard',

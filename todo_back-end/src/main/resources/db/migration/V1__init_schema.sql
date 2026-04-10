@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS member (
+    id BIGSERIAL PRIMARY KEY,
+    login VARCHAR(160) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    display_name VARCHAR(120) NOT NULL,
+    photo_data_url TEXT
+);
+
+CREATE TABLE IF NOT EXISTS task (
+    id BIGSERIAL PRIMARY KEY,
+    name_task VARCHAR(140) NOT NULL,
+    description VARCHAR(500),
+    category VARCHAR(80),
+    priority VARCHAR(20) NOT NULL,
+    due_date DATE,
+    done BOOLEAN NOT NULL DEFAULT FALSE,
+    member_id BIGINT NOT NULL,
+    CONSTRAINT fk_task_member FOREIGN KEY (member_id) REFERENCES member(id)
+);
+
+ALTER TABLE member ADD COLUMN IF NOT EXISTS display_name VARCHAR(120);
+ALTER TABLE member ADD COLUMN IF NOT EXISTS photo_data_url TEXT;
+UPDATE member SET display_name = login WHERE display_name IS NULL;
+ALTER TABLE member ALTER COLUMN display_name SET NOT NULL;
+
+ALTER TABLE task ADD COLUMN IF NOT EXISTS category VARCHAR(80);
+ALTER TABLE task ADD COLUMN IF NOT EXISTS priority VARCHAR(20);
+ALTER TABLE task ADD COLUMN IF NOT EXISTS due_date DATE;
+ALTER TABLE task ADD COLUMN IF NOT EXISTS done BOOLEAN NOT NULL DEFAULT FALSE;
+UPDATE task SET priority = 'Média' WHERE priority IS NULL;
+ALTER TABLE task ALTER COLUMN priority SET NOT NULL;

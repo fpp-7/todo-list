@@ -1,50 +1,64 @@
-package br.com.project.to_do.infra; // Ajuste para o seu pacote
+package br.com.project.to_do.infra;
 
+import br.com.project.to_do.exception.InvalidTokenException;
 import br.com.project.to_do.repository.MemberRepository;
 import br.com.project.to_do.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-
 @Component
+@RequiredArgsConstructor
 public class SecurityFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private TokenService tokenService;
+    private static final Logger log = LoggerFactory.getLogger(SecurityFilter.class);
 
-    @Autowired
-    private MemberRepository memberRepository;
+    private final TokenService tokenService;
+    private final MemberRepository memberRepository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        var token = this.recoverToken(request);
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        String token = recoverToken(request);
 
-        if(token != null){
-            var login = tokenService.validateToken(token);
-            UserDetails user = memberRepository.findByLogin(login);
-
-            if (user != null) {
-                // Se achamos o usuário, autenticamos ele no contexto do Spring
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (token != null) {
+            try {
+                String login = tokenService.validateToken(token);
+                memberRepository.findByLogin(login).ifPresent(user -> {
+                    var authentication = new UsernamePasswordAuthenticationToken(
+                            user,
+                            null,
+                            user.getAuthorities()
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                });
+            } catch (InvalidTokenException exception) {
+                log.debug("Requisição recebida com token inválido para {}", request.getRequestURI());
+                SecurityContextHolder.clearContext();
             }
         }
-        // Continua o fluxo da requisição
+
         filterChain.doFilter(request, response);
     }
 
-    private String recoverToken(HttpServletRequest request){
-        var authHeader = request.getHeader("Authorization");
-        if(authHeader == null) return null;
-        return authHeader.replace("Bearer ", "");
+    private String recoverToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        return authHeader.replace("Bearer ", "").trim();
     }
 }

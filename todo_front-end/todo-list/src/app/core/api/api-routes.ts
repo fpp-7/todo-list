@@ -1,14 +1,21 @@
-const backendOrigin =
-  typeof window === 'undefined'
-    ? 'http://localhost:8080'
-    : `${window.location.protocol}//${window.location.hostname}:8080`;
+import { environment } from '../../../environments/environment';
+
+const backendOrigin = environment.apiBaseUrl;
 
 export const apiRoutes = {
   auth: {
     login: `${backendOrigin}/auth/login`,
+    refresh: `${backendOrigin}/auth/refresh`,
+    logout: `${backendOrigin}/auth/logout`,
     register: `${backendOrigin}/auth/register`,
-    forgotPassword: `${backendOrigin}/auth/esqueci-senha`,
-    requestInvite: `${backendOrigin}/auth/solicitar-convite`,
+    forgotPassword: `${backendOrigin}/auth/forgot-password`,
+    resetPassword: `${backendOrigin}/auth/reset-password`,
+    requestInvite: `${backendOrigin}/auth/invite-request`,
+  },
+  profile: {
+    base: `${backendOrigin}/profile`,
+    password: `${backendOrigin}/profile/password`,
+    photo: `${backendOrigin}/profile/photo`,
   },
   tasks: {
     base: `${backendOrigin}/task`,

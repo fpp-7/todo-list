@@ -10,6 +10,9 @@ import {
 } from '../../core/tasks/task-api.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { SessionService } from '../../core/auth/session.service';
+import { ProfileDTO } from '../../core/auth/auth.dtos';
+import { AccessApiService } from '../../core/auth/access-api.service';
+import { ProfileApiService } from '../../core/profile/profile-api.service';
 import { TaskForm } from '../task-form/task-form';
 
 type TaskFilter = 'Todas' | 'Hoje' | 'Em andamento' | 'Planejadas' | 'Concluídas';
@@ -93,14 +96,17 @@ const fallbackTasks: readonly TaskApiRecord[] = [
   styleUrl: './task-list.css',
 })
 export class TaskList {
+  private readonly localTasksStorageKey = 'todo-list-local-tasks';
   private readonly destroyRef = inject(DestroyRef);
   private readonly taskApi = inject(TaskApiService);
+  private readonly accessApi = inject(AccessApiService);
+  private readonly profileApi = inject(ProfileApiService);
   private readonly themeService = inject(ThemeService);
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
 
   protected readonly profileName = signal('Usuário');
-  protected readonly profileEmail = 'usuario@exemplo.com';
+  protected readonly profileEmail = signal('usuario@exemplo.com');
   protected readonly profileImageUrl = signal<string | null>(null);
   protected readonly isDarkTheme = this.themeService.isDarkTheme;
   protected readonly filters: readonly TaskFilter[] = [
@@ -136,6 +142,8 @@ export class TaskList {
   protected readonly isProfileModalOpen = signal(false);
   protected readonly isLoading = signal(true);
   protected readonly isSavingTask = signal(false);
+  protected readonly isSavingProfilePhoto = signal(false);
+  protected readonly isSavingProfilePassword = signal(false);
   protected readonly usingLocalFallback = signal(false);
   protected readonly syncMessage = signal('');
 
@@ -185,11 +193,21 @@ export class TaskList {
   );
 
   constructor() {
+    this.loadProfile();
     this.loadTasks();
   }
 
   protected logout(): void {
-    this.sessionService.clearToken();
+    const refreshToken = this.sessionService.getRefreshToken();
+
+    if (refreshToken) {
+      this.accessApi
+        .logout({ refreshToken })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({ error: () => undefined });
+    }
+
+    this.sessionService.clearSession();
     this.router.navigate(['/login']);
   }
 
@@ -283,7 +301,11 @@ export class TaskList {
   }
 
   protected saveProfilePassword(): void {
-    if (!this.profileCurrentPassword || !this.profileNewPassword || !this.profileConfirmPassword) {
+    if (
+      !this.profileCurrentPassword ||
+      !this.profileNewPassword ||
+      !this.profileConfirmPassword
+    ) {
       this.setProfilePasswordFeedback('Preencha todos os campos para alterar sua senha.', 'error');
       return;
     }
@@ -298,13 +320,31 @@ export class TaskList {
       return;
     }
 
-    this.profileCurrentPassword = '';
-    this.profileNewPassword = '';
-    this.profileConfirmPassword = '';
-    this.setProfilePasswordFeedback(
-      'Alteração de senha preparada no frontend. Falta ligar essa ação ao backend.',
-      'success',
-    );
+    this.isSavingProfilePassword.set(true);
+
+    this.profileApi
+      .updatePassword({
+        currentPassword: this.profileCurrentPassword,
+        newPassword: this.profileNewPassword,
+        confirmPassword: this.profileConfirmPassword,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          this.profileCurrentPassword = '';
+          this.profileNewPassword = '';
+          this.profileConfirmPassword = '';
+          this.isSavingProfilePassword.set(false);
+          this.setProfilePasswordFeedback(response.message, 'success');
+        },
+        error: (error) => {
+          this.isSavingProfilePassword.set(false);
+          this.setProfilePasswordFeedback(
+            this.extractErrorMessage(error) ?? 'Não foi possível atualizar sua senha agora.',
+            'error',
+          );
+        },
+      });
   }
 
   protected handleTaskSubmitted(payload: TaskUpsertPayload): void {
@@ -382,7 +422,7 @@ export class TaskList {
 
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        this.profileImageUrl.set(reader.result);
+        this.persistProfilePhoto(reader.result);
       }
     };
 
@@ -391,7 +431,60 @@ export class TaskList {
   }
 
   protected removeProfilePhoto(): void {
-    this.profileImageUrl.set(null);
+    this.persistProfilePhoto(null);
+  }
+
+  private loadProfile(): void {
+    const cachedProfile = this.sessionService.getProfile();
+
+    if (cachedProfile) {
+      this.applyProfile(cachedProfile);
+    }
+
+    this.profileApi
+      .getProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          this.sessionService.saveProfile(profile);
+          this.applyProfile(profile);
+        },
+        error: () => {
+          if (!cachedProfile) {
+            this.profileName.set('Usuário');
+            this.profileEmail.set('usuario@exemplo.com');
+          }
+        },
+      });
+  }
+
+  private persistProfilePhoto(photoDataUrl: string | null): void {
+    this.isSavingProfilePhoto.set(true);
+
+    this.profileApi
+      .updatePhoto({ photoDataUrl })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (profile) => {
+          this.sessionService.saveProfile(profile);
+          this.applyProfile(profile);
+          this.isSavingProfilePhoto.set(false);
+          this.setProfilePasswordFeedback('Foto de perfil sincronizada com o backend.', 'success');
+        },
+        error: (error) => {
+          this.isSavingProfilePhoto.set(false);
+          this.setProfilePasswordFeedback(
+            this.extractErrorMessage(error) ?? 'Não foi possível sincronizar a foto agora.',
+            'error',
+          );
+        },
+      });
+  }
+
+  private applyProfile(profile: ProfileDTO): void {
+    this.profileName.set(profile.displayName || profile.email);
+    this.profileEmail.set(profile.email);
+    this.profileImageUrl.set(profile.photoDataUrl);
   }
 
   private loadTasks(): void {
@@ -404,14 +497,18 @@ export class TaskList {
         next: (tasks) => {
           this.tasks.set(tasks.map((task) => this.mapTaskRecord(task)));
           this.usingLocalFallback.set(false);
+          this.clearLocalTasks();
           this.syncMessage.set('Dados sincronizados com o backend.');
           this.isLoading.set(false);
         },
         error: () => {
-          this.tasks.set(fallbackTasks.map((task) => this.mapTaskRecord(task)));
+          const localTasks = this.readLocalTasks();
+          this.tasks.set((localTasks ?? fallbackTasks).map((task) => this.mapTaskRecord(task)));
           this.usingLocalFallback.set(true);
           this.syncMessage.set(
-            'Backend indisponível. Exibindo tarefas locais para continuar o layout.',
+            localTasks
+              ? 'Backend indisponível. Exibindo tarefas locais salvas neste navegador.'
+              : 'Backend indisponível. Exibindo tarefas locais para continuar o layout.',
           );
           this.isLoading.set(false);
         },
@@ -425,6 +522,7 @@ export class TaskList {
     });
 
     this.tasks.update((currentTasks) => [localTask, ...currentTasks]);
+    this.saveLocalTasks();
     this.isSavingTask.set(false);
     this.isTaskModalOpen.set(false);
     this.syncMessage.set('Tarefa salva localmente.');
@@ -536,6 +634,10 @@ export class TaskList {
   private finishTaskPersistence(taskId: number, message: string, closeEditModal = false): void {
     this.syncMessage.set(message);
     this.setTaskUpdating(taskId, false);
+
+    if (this.usingLocalFallback()) {
+      this.saveLocalTasks();
+    }
 
     if (closeEditModal && this.editingTaskId === taskId) {
       this.closeEditTaskModal();
@@ -714,6 +816,69 @@ export class TaskList {
     }
 
     return `Atrasada desde ${formattedDate}`;
+  }
+
+  private readLocalTasks(): TaskApiRecord[] | null {
+    try {
+      const storedTasks = localStorage.getItem(this.localTasksStorageKey);
+
+      if (!storedTasks) {
+        return null;
+      }
+
+      const parsedTasks = JSON.parse(storedTasks);
+
+      return Array.isArray(parsedTasks) ? (parsedTasks as TaskApiRecord[]) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private saveLocalTasks(): void {
+    try {
+      localStorage.setItem(
+        this.localTasksStorageKey,
+        JSON.stringify(this.tasks().map((task) => this.toTaskRecord(task))),
+      );
+    } catch {
+      this.syncMessage.set('Não foi possível persistir as tarefas locais neste navegador.');
+    }
+  }
+
+  private clearLocalTasks(): void {
+    try {
+      localStorage.removeItem(this.localTasksStorageKey);
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+
+  private toTaskRecord(task: TaskItem): TaskApiRecord {
+    return {
+      id: task.id,
+      name: task.title,
+      description: task.description,
+      category: task.category,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      done: task.done,
+    };
+  }
+
+  private extractErrorMessage(error: unknown): string | null {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'error' in error &&
+      error.error &&
+      typeof error.error === 'object' &&
+      'message' in error.error &&
+      typeof error.error.message === 'string'
+    ) {
+      return error.error.message;
+    }
+
+    return null;
   }
 }
 

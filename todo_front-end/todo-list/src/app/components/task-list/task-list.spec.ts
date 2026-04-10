@@ -1,12 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { AccessApiService } from '../../core/auth/access-api.service';
+import { ProfileApiService } from '../../core/profile/profile-api.service';
 import { TaskApiService } from '../../core/tasks/task-api.service';
 import { TaskList } from './task-list';
 
 describe('TaskList', () => {
   let component: TaskList;
   let fixture: ComponentFixture<TaskList>;
+  let accessApiService: jasmine.SpyObj<AccessApiService>;
   let taskApiService: jasmine.SpyObj<TaskApiService>;
+  let profileApiService: jasmine.SpyObj<ProfileApiService>;
 
   const taskRecord = {
     id: 1,
@@ -19,6 +23,9 @@ describe('TaskList', () => {
   };
 
   beforeEach(async () => {
+    localStorage.clear();
+
+    accessApiService = jasmine.createSpyObj<AccessApiService>('AccessApiService', ['logout']);
     taskApiService = jasmine.createSpyObj<TaskApiService>('TaskApiService', [
       'listTasks',
       'createTask',
@@ -26,19 +33,41 @@ describe('TaskList', () => {
       'updateTask',
       'deleteTask',
     ]);
+    profileApiService = jasmine.createSpyObj<ProfileApiService>('ProfileApiService', [
+      'getProfile',
+      'updatePassword',
+      'updatePhoto',
+    ]);
 
     taskApiService.listTasks.and.returnValue(of([taskRecord]));
     taskApiService.createTask.and.returnValue(of(taskRecord));
     taskApiService.completeTask.and.returnValue(of({ ...taskRecord, done: true }));
     taskApiService.updateTask.and.returnValue(of(taskRecord));
     taskApiService.deleteTask.and.returnValue(of(void 0));
+    accessApiService.logout.and.returnValue(of({ status: 'SUCCESS', message: 'Sessao encerrada.' }));
+    profileApiService.getProfile.and.returnValue(
+      of({
+        id: 1,
+        email: 'usuario@empresa.com',
+        displayName: 'Usuário Teste',
+        photoDataUrl: null,
+      }),
+    );
 
     await TestBed.configureTestingModule({
       imports: [TaskList],
       providers: [
         {
+          provide: AccessApiService,
+          useValue: accessApiService,
+        },
+        {
           provide: TaskApiService,
           useValue: taskApiService,
+        },
+        {
+          provide: ProfileApiService,
+          useValue: profileApiService,
         },
       ],
     }).compileComponents();
@@ -57,9 +86,11 @@ describe('TaskList', () => {
     expect(compiled.querySelector('.task-topbar__brand-title')?.textContent).toContain('TODO LIST');
   });
 
-  it('should render the default profile name', () => {
+  it('should render the profile name from backend', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.task-topbar__user strong')?.textContent).toContain('Usuário');
+    expect(compiled.querySelector('.task-topbar__user strong')?.textContent).toContain(
+      'Usuário Teste',
+    );
   });
 
   it('should use the complete endpoint when finishing a task', () => {

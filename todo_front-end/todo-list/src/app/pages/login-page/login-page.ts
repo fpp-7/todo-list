@@ -1,7 +1,7 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { interval } from 'rxjs';
 import { AccessApiService } from '../../core/auth/access-api.service';
 import { SessionService } from '../../core/auth/session.service';
@@ -26,6 +26,7 @@ export class LoginPage {
   private readonly accessApi = inject(AccessApiService);
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private highlightSwapTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private pendingHighlightIndex: number | null = null;
 
@@ -136,10 +137,10 @@ export class LoginPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          this.sessionService.saveToken(response.token);
+          this.sessionService.saveSession(response);
           this.isSubmittingLogin.set(false);
           this.setLoginFeedback('Login realizado com sucesso!', 'success');
-          this.router.navigate(['/tasks']);
+          this.router.navigateByUrl(this.getPostLoginRedirectUrl());
         },
         error: (error) => {
           this.isSubmittingLogin.set(false);
@@ -287,6 +288,20 @@ export class LoginPage {
   private setLoginFeedback(message: string, tone: Exclude<FeedbackTone, null>): void {
     this.loginFeedback.set(message);
     this.loginFeedbackTone.set(tone);
+  }
+
+  private getPostLoginRedirectUrl(): string {
+    const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo');
+
+    if (redirectTo && this.isSafeRedirectPath(redirectTo)) {
+      return redirectTo;
+    }
+
+    return '/tasks';
+  }
+
+  private isSafeRedirectPath(path: string): boolean {
+    return path.startsWith('/') && !path.startsWith('//') && !/^https?:\/\//i.test(path);
   }
 
   private isValidEmail(email: string): boolean {

@@ -238,6 +238,11 @@
                     <div class="task-row__headline">
                       <h4>{{ task.title }}</h4>
                       <p>{{ task.description }}</p>
+                      <div class="task-row__meta" aria-label="Metadados da tarefa">
+                        <span>{{ task.category }}</span>
+                        <span>{{ task.status }}</span>
+                        <span>{{ task.dueLabel }}</span>
+                      </div>
                     </div>
 
                     <div class="task-row__side">
@@ -512,11 +517,16 @@
 
           <div class="profile-modal__surface-copy">
             <span>{{ profileName() }}</span>
-            <strong>{{ profileEmail }}</strong>
+            <strong>{{ profileEmail() }}</strong>
           </div>
 
           <div class="profile-modal__photo-tools">
-            <button type="button" class="profile-modal__primary" (click)="profilePhotoInput.click()">
+            <button
+              type="button"
+              class="profile-modal__primary"
+              [disabled]="isSavingProfilePhoto()"
+              (click)="profilePhotoInput.click()"
+            >
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M6.5 8.5H9L10.5 6.5H13.5L15 8.5H17.5C18.6046 8.5 19.5 9.39543 19.5 10.5V16.5C19.5 17.6046 18.6046 18.5 17.5 18.5H6.5C5.39543 18.5 4.5 17.6046 4.5 16.5V10.5C4.5 9.39543 5.39543 8.5 6.5 8.5Z"
@@ -526,11 +536,20 @@
                 />
                 <circle cx="12" cy="13.5" r="3" stroke="currentColor" stroke-width="1.8" />
               </svg>
-              {{ profileImageUrl() ? 'Alterar foto' : 'Escolher foto' }}
+              @if (isSavingProfilePhoto()) {
+                Sincronizando...
+              } @else {
+                {{ profileImageUrl() ? 'Alterar foto' : 'Escolher foto' }}
+              }
             </button>
 
             @if (profileImageUrl()) {
-              <button type="button" class="profile-modal__secondary" (click)="removeProfilePhoto()">
+              <button
+                type="button"
+                class="profile-modal__secondary"
+                [disabled]="isSavingProfilePhoto()"
+                (click)="removeProfilePhoto()"
+              >
                 Remover foto
               </button>
             }
@@ -609,8 +628,17 @@
         }
 
         <div class="profile-modal__section-actions">
-          <button type="button" class="profile-modal__primary" (click)="saveProfilePassword()">
-            Atualizar senha
+          <button
+            type="button"
+            class="profile-modal__primary"
+            [disabled]="isSavingProfilePassword()"
+            (click)="saveProfilePassword()"
+          >
+            @if (isSavingProfilePassword()) {
+              Atualizando...
+            } @else {
+              Atualizar senha
+            }
           </button>
           <button type="button" class="profile-modal__secondary" (click)="logout()">
             Sair da conta
