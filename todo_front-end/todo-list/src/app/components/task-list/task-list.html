@@ -49,7 +49,9 @@
           } @else {
             <svg viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="4" />
-              <path d="M12 2.5v2.2M12 19.3v2.2M4.7 4.7l1.6 1.6M17.7 17.7l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.7 19.3l1.6-1.6M17.7 6.3l1.6-1.6" />
+              <path
+                d="M12 2.5v2.2M12 19.3v2.2M4.7 4.7l1.6 1.6M17.7 17.7l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.7 19.3l1.6-1.6M17.7 6.3l1.6-1.6"
+              />
             </svg>
           }
         </span>
@@ -57,10 +59,7 @@
 
       <div class="task-topbar__actions">
         <button type="button" class="task-topbar__user" (click)="openProfileModal()">
-          <span
-            class="task-topbar__avatar"
-            [class.task-topbar__avatar--photo]="profileImageUrl()"
-          >
+          <span class="task-topbar__avatar" [class.task-topbar__avatar--photo]="profileImageUrl()">
             @if (profileImageUrl()) {
               <img [src]="profileImageUrl()" alt="" />
             } @else {
@@ -100,7 +99,9 @@
           <div class="task-status-card__aside">
             <span class="task-status-card__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24">
-                <path d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2Z" />
+                <path
+                  d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2Z"
+                />
                 <path d="m10 14 1.5 1.5L15 12" />
               </svg>
             </span>
@@ -146,7 +147,9 @@
 
           <span class="task-status-card__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
-              <path d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2Z" />
+              <path
+                d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2Z"
+              />
               <path d="M8 14h8M8 18h5" />
             </svg>
           </span>
@@ -210,7 +213,7 @@
           </div>
         } @else if (filteredTasks().length) {
           <div class="task-list-panel__items">
-            @for (task of filteredTasks(); track task.id) {
+            @for (task of paginatedTasks(); track task.id) {
               <article
                 class="task-row"
                 [class.task-row--done]="task.done"
@@ -281,6 +284,39 @@
               </article>
             }
           </div>
+
+          @if (shouldShowPagination()) {
+            <footer class="task-list-pagination" aria-label="Paginacao da lista de tarefas">
+              <p class="task-list-pagination__summary">
+                Mostrando {{ pageRangeStart() }}-{{ pageRangeEnd() }} de
+                {{ filteredTasks().length }} tarefas
+              </p>
+
+              <div class="task-list-pagination__controls">
+                <button
+                  type="button"
+                  class="task-list-pagination__button"
+                  [disabled]="currentPage() === 1"
+                  (click)="goToPreviousPage()"
+                >
+                  Anterior
+                </button>
+
+                <span class="task-list-pagination__page">
+                  Pagina {{ currentPage() }} de {{ totalPages() }}
+                </span>
+
+                <button
+                  type="button"
+                  class="task-list-pagination__button task-list-pagination__button--next"
+                  [disabled]="currentPage() === totalPages()"
+                  (click)="goToNextPage()"
+                >
+                  Proxima
+                </button>
+              </div>
+            </footer>
+          }
         } @else {
           <div class="task-list-panel__empty">
             <strong>Nenhuma tarefa encontrada</strong>
@@ -343,9 +379,24 @@
           <label class="task-edit-form__field task-edit-form__field--wide">
             <span class="task-edit-form__label">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 7.5H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <path d="M5 12H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <path d="M5 16.5H11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path
+                  d="M5 7.5H19"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M5 12H14"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M5 16.5H11"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
               </svg>
               Título
             </span>
@@ -375,8 +426,18 @@
           <label class="task-edit-form__field">
             <span class="task-edit-form__label">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" stroke="currentColor" stroke-width="1.8" />
-                <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <path
+                  d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M12 7v5l3 2"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
               Status
             </span>
@@ -392,7 +453,12 @@
           <label class="task-edit-form__field">
             <span class="task-edit-form__label">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M7 5.5V18.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path
+                  d="M7 5.5V18.5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
                 <path
                   d="M7 6H15.5L14 9.25L15.5 12.5H7"
                   stroke="currentColor"
@@ -417,8 +483,21 @@
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M7 6.5H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
               <path d="M7 11H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              <path d="M7 15.5H12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              <rect x="4.5" y="4.5" width="15" height="15" rx="3" stroke="currentColor" stroke-width="1.8" />
+              <path
+                d="M7 15.5H12.5"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+              <rect
+                x="4.5"
+                y="4.5"
+                width="15"
+                height="15"
+                rx="3"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
             </svg>
             Descrição
           </span>
@@ -650,4 +729,3 @@
     </section>
   </div>
 }
-

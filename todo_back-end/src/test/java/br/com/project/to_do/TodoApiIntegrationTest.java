@@ -1,5 +1,6 @@
 package br.com.project.to_do;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -67,6 +68,7 @@ class TodoApiIntegrationTest {
 
     @BeforeEach
     void cleanUp() {
+        passwordResetTokenRepository.deleteAll();
         taskRepository.deleteAll();
         memberRepository.deleteAll();
     }
@@ -300,6 +302,96 @@ class TodoApiIntegrationTest {
     }
 
     @Test
+    void shouldKeepLegacyTaskListResponseWithoutQueryParams() throws Exception {
+        Member member = createMember("legacy@example.com", "senha123", "Legacy");
+        String token = login("legacy@example.com", "senha123");
+
+        createTask(member, "Primeira tarefa", "Produto", "Alta", LocalDate.parse("2026-04-12"), false);
+        createTask(member, "Segunda tarefa", "Operacao", "Baixa", null, false);
+
+        mockMvc.perform(get("/task")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$", Matchers.hasSize(2)))
+                .andExpect(jsonPath("$[*].name", Matchers.hasItems("Primeira tarefa", "Segunda tarefa")));
+    }
+
+    @Test
+    void shouldPaginateAndFilterTasksWhenQueryParamsAreProvided() throws Exception {
+        Member member = createMember("filters@example.com", "senha123", "Filters");
+        String token = login("filters@example.com", "senha123");
+
+        createTask(member, "Planejar sprint", "Produto", "Alta", LocalDate.now().plusDays(2), false);
+        createTask(member, "Planejar release", "Produto", "Alta", LocalDate.now().plusDays(3), false);
+        createTask(member, "Responder cliente", "Suporte", "MÃ©dia", null, false);
+        createTask(member, "Checklist final", "Produto", "Alta", LocalDate.now().minusDays(1), true);
+
+        mockMvc.perform(get("/task")
+                        .header("Authorization", "Bearer " + token)
+                        .param("page", "0")
+                        .param("size", "1")
+                        .param("status", "planejada")
+                        .param("query", "Planejar")
+                        .param("category", "Produto")
+                        .param("priority", "Alta")
+                        .param("done", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.items[0].name").value("Planejar release"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.hasNext").value(true))
+                .andExpect(jsonPath("$.hasPrevious").value(false));
+    }
+
+    @Test
+    void shouldRejectInvalidTaskPayloadWithFieldErrors() throws Exception {
+        createMember("validator@example.com", "senha123", "Validator");
+        String token = login("validator@example.com", "senha123");
+        String invalidPayload = """
+                {
+                  "name": " ",
+                  "description": "%s",
+                  "category": "%s",
+                  "priority": " ",
+                  "dueDate": null,
+                  "done": null
+                }
+                """.formatted("a".repeat(501), "b".repeat(81));
+
+        mockMvc.perform(post("/task")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidPayload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[*].field", Matchers.hasItems(
+                        "name",
+                        "description",
+                        "category",
+                        "priority",
+                        "done"
+                )));
+    }
+
+    @Test
+    void shouldRejectInvalidTaskDateRangeFilter() throws Exception {
+        createMember("daterange@example.com", "senha123", "Date Range");
+        String token = login("daterange@example.com", "senha123");
+
+        mockMvc.perform(get("/task")
+                        .header("Authorization", "Bearer " + token)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("dueDateFrom", "2026-04-20")
+                        .param("dueDateTo", "2026-04-10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("O intervalo de datas informado e invalido."));
+    }
+
+    @Test
     void shouldReturnNotFoundWhenTryingToAccessAnotherUsersTask() throws Exception {
         Member owner = createMember("owner@example.com", "senha123", "Owner");
         Member intruder = createMember("intruder@example.com", "senha123", "Intruder");
@@ -330,9 +422,49 @@ class TodoApiIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Tarefa não encontrada."));
     }
 
+    @Test
+    void shouldReturnNotFoundWhenTryingToDeleteAnotherUsersTask() throws Exception {
+        Member owner = createMember("owner.delete@example.com", "senha123", "Owner");
+        createMember("intruder.delete@example.com", "senha123", "Intruder");
+
+        Task task = new Task();
+        task.setNameTask("Excluir privada");
+        task.setPriority("Alta");
+        task.setDone(false);
+        task.setMember(owner);
+        taskRepository.save(task);
+
+        String intruderToken = login("intruder.delete@example.com", "senha123");
+
+        mockMvc.perform(delete("/task/{id}", task.getId())
+                        .header("Authorization", "Bearer " + intruderToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+
+        assertThat(taskRepository.findById(task.getId())).isPresent();
+    }
+
     private Member createMember(String login, String rawPassword, String displayName) {
         Member member = new Member(login, passwordEncoder.encode(rawPassword), displayName);
         return memberRepository.save(member);
+    }
+
+    private Task createTask(
+            Member member,
+            String name,
+            String category,
+            String priority,
+            LocalDate dueDate,
+            boolean done
+    ) {
+        Task task = new Task();
+        task.setNameTask(name);
+        task.setCategory(category);
+        task.setPriority(priority);
+        task.setDueDate(dueDate);
+        task.setDone(done);
+        task.setMember(member);
+        return taskRepository.save(task);
     }
 
     private String login(String login, String password) throws Exception {

@@ -16,6 +16,7 @@ import { AccessApiService } from '../../core/auth/access-api.service';
 import { ProfileApiService } from '../../core/profile/profile-api.service';
 import { TaskForm } from '../task-form/task-form';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../core/toast/toast.service';
 import {
   fallbackTasks,
   todayIso,
@@ -40,7 +41,9 @@ export class TaskList {
   private readonly profileApi = inject(ProfileApiService);
   private readonly themeService = inject(ThemeService);
   private readonly sessionService = inject(SessionService);
+  private readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly pageSize = 6;
 
   protected readonly profileName = signal('Usuário');
   protected readonly profileEmail = signal('usuario@exemplo.com');
@@ -72,6 +75,7 @@ export class TaskList {
 
   protected readonly selectedFilter = signal<TaskFilter>('Todas');
   protected readonly searchQuery = signal('');
+  protected readonly currentPage = signal(1);
   protected readonly tasks = signal<TaskItem[]>([]);
   protected readonly updatingTaskIds = signal<number[]>([]);
   protected readonly isTaskModalOpen = signal(false);
@@ -99,19 +103,29 @@ export class TaskList {
   protected readonly filteredTasks = computed(() => {
     const filter = this.selectedFilter();
     const query = this.searchQuery().trim().toLowerCase();
-    const filterStatus = this.getFilterStatus(filter);
-
-    return this.tasks().filter((task) => {
-      const matchesFilter = !filterStatus || task.status === filterStatus;
-      const matchesQuery =
-        !query ||
-        task.title.toLowerCase().includes(query) ||
-        task.description.toLowerCase().includes(query) ||
-        task.category.toLowerCase().includes(query);
-
-      return matchesFilter && matchesQuery;
-    });
+    return this.tasks().filter((task) => this.matchesSelectedView(task, filter, query));
   });
+
+  protected readonly paginatedTasks = computed(() => {
+    const currentPage = this.currentPage();
+    const startIndex = (currentPage - 1) * this.pageSize;
+    return this.filteredTasks().slice(startIndex, startIndex + this.pageSize);
+  });
+
+  protected readonly totalPages = computed(() =>
+    Math.max(Math.ceil(this.filteredTasks().length / this.pageSize), 1),
+  );
+  protected readonly shouldShowPagination = computed(
+    () => this.filteredTasks().length > this.pageSize,
+  );
+
+  protected readonly pageRangeStart = computed(() =>
+    this.filteredTasks().length ? (this.currentPage() - 1) * this.pageSize + 1 : 0,
+  );
+
+  protected readonly pageRangeEnd = computed(() =>
+    Math.min(this.currentPage() * this.pageSize, this.filteredTasks().length),
+  );
 
   protected readonly todayCount = computed(
     () => this.tasks().filter((task) => task.status === 'Hoje').length,
@@ -146,14 +160,32 @@ export class TaskList {
 
   protected selectFilter(filter: TaskFilter): void {
     this.selectedFilter.set(filter);
+    this.currentPage.set(1);
   }
 
   protected setSearchQuery(value: string): void {
     this.searchQuery.set(value);
+    this.currentPage.set(1);
   }
 
   protected openTaskModal(): void {
     this.isTaskModalOpen.set(true);
+  }
+
+  protected goToPreviousPage(): void {
+    if (this.currentPage() === 1) {
+      return;
+    }
+
+    this.currentPage.update((page) => page - 1);
+  }
+
+  protected goToNextPage(): void {
+    if (this.currentPage() >= this.totalPages()) {
+      return;
+    }
+
+    this.currentPage.update((page) => page + 1);
   }
 
   protected toggleTheme(): void {
@@ -234,11 +266,7 @@ export class TaskList {
   }
 
   protected saveProfilePassword(): void {
-    if (
-      !this.profileCurrentPassword ||
-      !this.profileNewPassword ||
-      !this.profileConfirmPassword
-    ) {
+    if (!this.profileCurrentPassword || !this.profileNewPassword || !this.profileConfirmPassword) {
       this.setProfilePasswordFeedback('Preencha todos os campos para alterar sua senha.', 'error');
       return;
     }
@@ -249,7 +277,10 @@ export class TaskList {
     }
 
     if (this.profileNewPassword !== this.profileConfirmPassword) {
-      this.setProfilePasswordFeedback('A confirmação da senha precisa ser igual à nova senha.', 'error');
+      this.setProfilePasswordFeedback(
+        'A confirmação da senha precisa ser igual à nova senha.',
+        'error',
+      );
       return;
     }
 
@@ -269,13 +300,14 @@ export class TaskList {
           this.profileConfirmPassword = '';
           this.isSavingProfilePassword.set(false);
           this.setProfilePasswordFeedback(response.message, 'success');
+          this.toastService.success(response.message, 'Senha atualizada');
         },
         error: (error) => {
           this.isSavingProfilePassword.set(false);
-          this.setProfilePasswordFeedback(
-            extractApiErrorMessage(error) ?? 'Não foi possível atualizar sua senha agora.',
-            'error',
-          );
+          const message =
+            extractApiErrorMessage(error) ?? 'Não foi possível atualizar sua senha agora.';
+          this.setProfilePasswordFeedback(message, 'error');
+          this.toastService.error(message, 'Falha ao atualizar senha', 'profile-password-error');
         },
       });
   }
@@ -294,6 +326,7 @@ export class TaskList {
       .subscribe({
         next: (task) => {
           this.tasks.update((currentTasks) => [this.mapTaskRecord(task), ...currentTasks]);
+          this.syncPagination();
           this.isSavingTask.set(false);
           this.isTaskModalOpen.set(false);
           this.syncMessage.set('Tarefa salva.');
@@ -301,6 +334,11 @@ export class TaskList {
         error: () => {
           this.usingLocalFallback.set(true);
           this.syncMessage.set('Tarefa salva. Confira sua lista antes de fechar a página.');
+          this.toastService.warning(
+            'A API ficou indisponivel e a tarefa foi salva apenas neste navegador.',
+            'Modo local ativado',
+            'task-local-mode',
+          );
           this.insertLocalTask(payload);
         },
       });
@@ -403,13 +441,14 @@ export class TaskList {
           this.applyProfile(profile);
           this.isSavingProfilePhoto.set(false);
           this.setProfilePasswordFeedback('Foto de perfil atualizada.', 'success');
+          this.toastService.success('Foto de perfil atualizada.', 'Perfil sincronizado');
         },
         error: (error) => {
           this.isSavingProfilePhoto.set(false);
-          this.setProfilePasswordFeedback(
-            extractApiErrorMessage(error) ?? 'Não foi possível atualizar a foto agora.',
-            'error',
-          );
+          const message =
+            extractApiErrorMessage(error) ?? 'Não foi possível atualizar a foto agora.';
+          this.setProfilePasswordFeedback(message, 'error');
+          this.toastService.error(message, 'Falha ao atualizar foto', 'profile-photo-error');
         },
       });
   }
@@ -444,16 +483,24 @@ export class TaskList {
           this.usingLocalFallback.set(false);
           this.clearLocalTasks();
           this.syncMessage.set('');
+          this.syncPagination();
           this.isLoading.set(false);
         },
         error: () => {
           const localTasks = this.readLocalTasks();
+          const message = localTasks
+            ? 'Mostrando suas tarefas salvas neste navegador.'
+            : 'Não foi possível carregar sua lista completa agora.';
           this.tasks.set((localTasks ?? fallbackTasks).map((task) => this.mapTaskRecord(task)));
           this.usingLocalFallback.set(true);
-          this.syncMessage.set(
+          this.syncMessage.set(message);
+          this.syncPagination();
+          this.toastService.warning(
             localTasks
-              ? 'Mostrando suas tarefas salvas neste navegador.'
-              : 'Não foi possível carregar sua lista completa agora.',
+              ? 'A conexao falhou e a lista local foi exibida para voce continuar trabalhando.'
+              : 'A conexao falhou e estamos exibindo um estado de contingencia.',
+            'Lista em contingencia',
+            'task-load-fallback',
           );
           this.isLoading.set(false);
         },
@@ -467,6 +514,7 @@ export class TaskList {
     });
 
     this.tasks.update((currentTasks) => [localTask, ...currentTasks]);
+    this.syncPagination();
     this.saveLocalTasks();
     this.isSavingTask.set(false);
     this.isTaskModalOpen.set(false);
@@ -494,10 +542,12 @@ export class TaskList {
         },
         error: () => {
           this.usingLocalFallback.set(true);
-          this.finishTaskPersistence(
-            task.id,
-            'Tarefa concluída. Confira novamente mais tarde.',
+          this.toastService.warning(
+            'A atualizacao foi mantida localmente e sera necessario conferir a sincronizacao depois.',
+            'Sincronizacao limitada',
+            'task-complete-fallback',
           );
+          this.finishTaskPersistence(task.id, 'Tarefa concluída. Confira novamente mais tarde.');
         },
       });
   }
@@ -520,6 +570,11 @@ export class TaskList {
         },
         error: () => {
           this.usingLocalFallback.set(true);
+          this.toastService.warning(
+            'A remocao foi mantida localmente e sera necessario conferir a sincronizacao depois.',
+            'Sincronizacao limitada',
+            'task-delete-fallback',
+          );
           this.finishTaskPersistence(
             task.id,
             'Tarefa removida. Confira novamente mais tarde.',
@@ -567,6 +622,11 @@ export class TaskList {
         },
         error: () => {
           this.usingLocalFallback.set(true);
+          this.toastService.warning(
+            'A alteracao foi mantida localmente e sera necessario conferir a sincronizacao depois.',
+            'Sincronizacao limitada',
+            'task-update-fallback',
+          );
           this.finishTaskPersistence(
             task.id,
             options.fallbackMessage ?? 'Alteração salva. Confira novamente mais tarde.',
@@ -651,10 +711,12 @@ export class TaskList {
     this.tasks.update((currentTasks) =>
       currentTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
     );
+    this.syncPagination();
   }
 
   private removeTask(taskId: number): void {
     this.tasks.update((currentTasks) => currentTasks.filter((task) => task.id !== taskId));
+    this.syncPagination();
   }
 
   private resetEditingTask(): void {
@@ -674,10 +736,7 @@ export class TaskList {
     this.profilePasswordFeedbackTone.set(null);
   }
 
-  private setProfilePasswordFeedback(
-    message: string,
-    tone: 'success' | 'error',
-  ): void {
+  private setProfilePasswordFeedback(message: string, tone: 'success' | 'error'): void {
     this.profilePasswordFeedback.set(message);
     this.profilePasswordFeedbackTone.set(tone);
   }
@@ -696,6 +755,18 @@ export class TaskList {
     }
 
     return filter;
+  }
+
+  private matchesSelectedView(task: TaskItem, filter: TaskFilter, query: string): boolean {
+    const filterStatus = this.getFilterStatus(filter);
+    const matchesFilter = !filterStatus || task.status === filterStatus;
+    const matchesQuery =
+      !query ||
+      task.title.toLowerCase().includes(query) ||
+      task.description.toLowerCase().includes(query) ||
+      task.category.toLowerCase().includes(query);
+
+    return matchesFilter && matchesQuery;
   }
 
   private mapTaskRecord(task: TaskApiRecord): TaskItem {
@@ -787,6 +858,11 @@ export class TaskList {
       );
     } catch {
       this.syncMessage.set('Não foi possível manter suas alterações neste navegador.');
+      this.toastService.error(
+        'Nao foi possivel manter suas alteracoes neste navegador.',
+        'Falha ao salvar localmente',
+        'task-local-storage-error',
+      );
     }
   }
 
@@ -810,5 +886,11 @@ export class TaskList {
     };
   }
 
-}
+  private syncPagination(): void {
+    const lastPage = Math.max(Math.ceil(this.filteredTasks().length / this.pageSize), 1);
 
+    if (this.currentPage() > lastPage) {
+      this.currentPage.set(lastPage);
+    }
+  }
+}

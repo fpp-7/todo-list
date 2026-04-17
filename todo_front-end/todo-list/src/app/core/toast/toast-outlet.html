@@ -1,0 +1,29 @@
+@if (toasts().length) {
+  <section class="toast-stack" aria-live="polite" aria-label="Notificacoes">
+    @for (toast of toasts(); track toast.id) {
+      <article
+        class="toast-card"
+        [class.toast-card--info]="toast.tone === 'info'"
+        [class.toast-card--success]="toast.tone === 'success'"
+        [class.toast-card--warning]="toast.tone === 'warning'"
+        [class.toast-card--error]="toast.tone === 'error'"
+      >
+        <div class="toast-card__content">
+          @if (toast.title) {
+            <strong>{{ toast.title }}</strong>
+          }
+          <p>{{ toast.message }}</p>
+        </div>
+
+        <button
+          type="button"
+          class="toast-card__dismiss"
+          aria-label="Fechar notificacao"
+          (click)="dismiss(toast.id)"
+        >
+          ×
+        </button>
+      </article>
+    }
+  </section>
+}

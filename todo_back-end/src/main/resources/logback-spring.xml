@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="logDir" source="app.logging.dir" defaultValue=".logs"/>
+    <springProperty scope="context" name="rootLevel" source="app.logging.root-level" defaultValue="INFO"/>
+    <springProperty scope="context" name="appLevel" source="app.logging.app-level" defaultValue="INFO"/>
+    <springProperty scope="context" name="sqlLevel" source="app.logging.sql-level" defaultValue="WARN"/>
+
+    <property name="fileBaseName" value="todo-backend"/>
+    <property name="logPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${logPattern}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logDir}/${fileBaseName}.log</file>
+        <encoder>
+            <pattern>${logPattern}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${logDir}/archive/${fileBaseName}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="br.com.project.to_do" level="${appLevel}"/>
+    <logger name="org.hibernate.SQL" level="${sqlLevel}"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="${sqlLevel}"/>
+    <logger name="org.springframework.security" level="INFO"/>
+
+    <root level="${rootLevel}">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

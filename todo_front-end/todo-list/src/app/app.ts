@@ -3,10 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { ThemeService } from './core/theme/theme.service';
+import { ToastOutlet } from './core/toast/toast-outlet';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ToastOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })

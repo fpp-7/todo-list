@@ -1,6 +1,7 @@
 HELP.md
 .env
 .data/
+.logs/
 .tmp-*
 .gradle
 build/

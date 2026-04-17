@@ -6,18 +6,26 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import br.com.project.to_do.dto.TaskListQueryDTO;
 import br.com.project.to_do.dto.TaskRequestDTO;
+import br.com.project.to_do.exception.BusinessRuleException;
 import br.com.project.to_do.exception.ResourceNotFoundException;
 import br.com.project.to_do.model.Member;
 import br.com.project.to_do.model.Task;
 import br.com.project.to_do.repository.TaskRepository;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
@@ -39,7 +47,7 @@ class TaskServiceTest {
     void shouldCreateTaskForAuthenticatedMember() {
         TaskRequestDTO requestDTO = new TaskRequestDTO(
                 "Nova tarefa",
-                "Descrição",
+                "DescriÃ§Ã£o",
                 "Pessoal",
                 "Alta",
                 LocalDate.parse("2026-04-10"),
@@ -57,6 +65,27 @@ class TaskServiceTest {
     }
 
     @Test
+    void shouldTrimAndNormalizeOptionalFieldsWhenCreatingTask() {
+        TaskRequestDTO requestDTO = new TaskRequestDTO(
+                "  Nova tarefa  ",
+                "   ",
+                "   ",
+                "  Alta  ",
+                null,
+                false
+        );
+
+        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Task saved = taskService.salvar(requestDTO, member);
+
+        assertThat(saved.getNameTask()).isEqualTo("Nova tarefa");
+        assertThat(saved.getDescription()).isNull();
+        assertThat(saved.getCategory()).isNull();
+        assertThat(saved.getPriority()).isEqualTo("Alta");
+    }
+
+    @Test
     void shouldUpdateOnlyOwnedTask() {
         Task task = new Task();
         task.setId(10L);
@@ -67,7 +96,7 @@ class TaskServiceTest {
                 "Atualizada",
                 "  Novo contexto  ",
                 "  Trabalho ",
-                "Média",
+                "MÃ©dia",
                 LocalDate.parse("2026-04-12"),
                 true
         );
@@ -81,6 +110,65 @@ class TaskServiceTest {
         assertThat(updated.getDescription()).isEqualTo("Novo contexto");
         assertThat(updated.getCategory()).isEqualTo("Trabalho");
         assertThat(updated.isDone()).isTrue();
+    }
+
+    @Test
+    void shouldListOnlyTasksFromAuthenticatedMember() {
+        Task firstTask = new Task();
+        Task secondTask = new Task();
+        List<Task> tasks = List.of(firstTask, secondTask);
+
+        when(taskRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(tasks);
+
+        List<Task> listedTasks = taskService.listar(member);
+
+        assertThat(listedTasks).containsExactly(firstTask, secondTask);
+        verify(taskRepository).findAll(any(Specification.class), any(Sort.class));
+    }
+
+    @Test
+    void shouldListTasksUsingPaginationAndFilters() {
+        Task task = new Task();
+        task.setId(30L);
+        task.setMember(member);
+        Page<Task> page = new PageImpl<>(List.of(task));
+        TaskListQueryDTO queryDTO = new TaskListQueryDTO(
+                1,
+                5,
+                "planejar",
+                "Produto",
+                "Alta",
+                false,
+                "planejada",
+                null,
+                null
+        );
+
+        when(taskRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+        Page<Task> listedTasks = taskService.listar(member, queryDTO);
+
+        assertThat(listedTasks.getContent()).containsExactly(task);
+        verify(taskRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void shouldRejectInvalidDateRangeWhenListingTasksWithFilters() {
+        TaskListQueryDTO queryDTO = new TaskListQueryDTO(
+                0,
+                10,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDate.parse("2026-04-20"),
+                LocalDate.parse("2026-04-10")
+        );
+
+        assertThatThrownBy(() -> taskService.listar(member, queryDTO))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("O intervalo de datas informado e invalido.");
     }
 
     @Test
@@ -115,5 +203,18 @@ class TaskServiceTest {
 
         assertThat(completed.isDone()).isTrue();
         verify(taskRepository).save(task);
+    }
+
+    @Test
+    void shouldDeleteOnlyOwnedTask() {
+        Task task = new Task();
+        task.setId(21L);
+        task.setMember(member);
+
+        when(taskRepository.findByIdAndMemberId(21L, 7L)).thenReturn(Optional.of(task));
+
+        taskService.deletar(21L, member);
+
+        verify(taskRepository).delete(task);
     }
 }

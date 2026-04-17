@@ -8,7 +8,9 @@ import {
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, finalize, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import { extractApiErrorMessage } from '../api/api-error';
 import { apiRoutes } from '../api/api-routes';
+import { ToastService } from '../toast/toast.service';
 import { TokenRefreshResponseDTO } from './auth.dtos';
 import { SessionService } from './session.service';
 
@@ -18,6 +20,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const sessionService = inject(SessionService);
   const authHttp = new HttpClient(inject(HttpBackend));
   const router = inject(Router);
+  const toastService = inject(ToastService);
   const isAuthRequest = req.url.includes('/auth/');
   const request = withCredentials(req);
 
@@ -39,7 +42,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return refreshRequest$.pipe(
           switchMap(() => next(withCredentials(req))),
           catchError((refreshError: unknown) => {
-            redirectToLogin(sessionService, router);
+            redirectToLogin(sessionService, router, toastService, refreshError);
             return throwError(() => refreshError);
           }),
         );
@@ -54,8 +57,18 @@ function withCredentials<T>(request: HttpRequest<T>): HttpRequest<T> {
   return request.clone({ withCredentials: true });
 }
 
-function redirectToLogin(sessionService: SessionService, router: Router): void {
+function redirectToLogin(
+  sessionService: SessionService,
+  router: Router,
+  toastService: ToastService,
+  error?: unknown,
+): void {
   sessionService.clearSession();
+  toastService.error(
+    extractApiErrorMessage(error) ?? 'Sua sessao expirou. Faca login novamente.',
+    'Sessao encerrada',
+    'session-expired',
+  );
   router.navigate(['/login'], {
     queryParams: { redirectTo: router.url === '/login' ? '/tasks' : router.url },
   });
