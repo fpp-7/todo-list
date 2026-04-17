@@ -34,15 +34,15 @@ export class LoginPage {
     {
       title: 'Organize seu dia sem perder o ritmo.',
       description:
-        'Re\u00FAna tarefas, prioridades e prazos em um painel simples para trabalhar com foco do in\u00EDcio ao fim.',
+        'Reúna tarefas, prioridades e prazos em um painel simples para trabalhar com foco do início ao fim.',
     },
     {
       title: 'Mantenha a equipe alinhada em cada entrega.',
       description:
-        'Distribua atividades, acompanhe respons\u00E1veis e visualize gargalos antes que eles atrasem o seu planejamento.',
+        'Distribua atividades, acompanhe responsáveis e visualize gargalos antes que eles atrasem o seu planejamento.',
     },
     {
-      title: 'Transforme pend\u00EAncias em pr\u00F3ximas a\u00E7\u00F5es.',
+      title: 'Transforme pendências em próximas ações.',
       description:
         'Destaque o que precisa sair hoje, acompanhe status e ganhe previsibilidade para sua rotina.',
     },
@@ -52,14 +52,10 @@ export class LoginPage {
   protected readonly isHighlightTransitioning = signal(false);
   protected readonly showPassword = signal(false);
   protected readonly isForgotPasswordModalOpen = signal(false);
-  protected readonly isInviteModalOpen = signal(false);
   protected readonly isSubmittingForgotPassword = signal(false);
-  protected readonly isSubmittingInvite = signal(false);
   protected readonly isSubmittingLogin = signal(false);
   protected readonly forgotPasswordFeedback = signal('');
   protected readonly forgotPasswordFeedbackTone = signal<FeedbackTone>(null);
-  protected readonly inviteFeedback = signal('');
-  protected readonly inviteFeedbackTone = signal<FeedbackTone>(null);
   protected readonly loginFeedback = signal('');
   protected readonly loginFeedbackTone = signal<FeedbackTone>(null);
   protected readonly activeHighlight = computed(
@@ -69,9 +65,6 @@ export class LoginPage {
   protected loginEmail = '';
   protected loginPassword = '';
   protected forgotPasswordEmail = '';
-  protected inviteName = '';
-  protected inviteEmail = '';
-  protected inviteCompany = '';
 
   constructor() {
     this.destroyRef.onDestroy(() => this.clearHighlightSwapTimeout());
@@ -103,25 +96,12 @@ export class LoginPage {
     this.resetForgotPasswordState();
   }
 
-  protected openInviteModal(): void {
-    this.resetInviteState();
-    this.isInviteModalOpen.set(true);
-  }
-
-  protected closeInviteModal(): void {
-    this.isInviteModalOpen.set(false);
-    this.resetInviteState();
-  }
-
   protected handleLoginSubmit(): void {
     const login = this.loginEmail.trim().toLowerCase();
     const password = this.loginPassword.trim();
 
     if (!this.isValidEmail(login)) {
-      this.setLoginFeedback(
-        'Informe um e-mail v\u00E1lido para fazer login.',
-        'error',
-      );
+      this.setLoginFeedback('Informe um e-mail válido para fazer login.', 'error');
       return;
     }
 
@@ -144,10 +124,7 @@ export class LoginPage {
         },
         error: () => {
           this.isSubmittingLogin.set(false);
-          this.setLoginFeedback(
-            'Erro ao fazer login. Verifique suas credenciais.',
-            'error',
-          );
+          this.setLoginFeedback('Erro ao fazer login. Verifique suas credenciais.', 'error');
         },
       });
   }
@@ -157,7 +134,7 @@ export class LoginPage {
 
     if (!this.isValidEmail(email)) {
       this.setForgotPasswordFeedback(
-        'Informe um e-mail v\u00E1lido para recuperar sua senha.',
+        'Informe um e-mail válido para recuperar sua senha.',
         'error',
       );
       return;
@@ -177,49 +154,7 @@ export class LoginPage {
         error: () => {
           this.isSubmittingForgotPassword.set(false);
           this.setForgotPasswordFeedback(
-            'N\u00E3o foi poss\u00EDvel enviar a recupera\u00E7\u00E3o agora. Tente novamente em instantes.',
-            'error',
-          );
-        },
-      });
-  }
-
-  protected submitInviteRequest(): void {
-    const name = this.inviteName.trim();
-    const email = this.inviteEmail.trim().toLowerCase();
-    const company = this.inviteCompany.trim();
-
-    if (!name) {
-      this.setInviteFeedback('Informe seu nome para solicitar o convite.', 'error');
-      return;
-    }
-
-    if (!this.isValidEmail(email)) {
-      this.setInviteFeedback('Informe um e-mail v\u00E1lido para solicitar o convite.', 'error');
-      return;
-    }
-
-    this.isSubmittingInvite.set(true);
-
-    this.accessApi
-      .requestInvite({
-        name,
-        email,
-        company: company || null,
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (response) => {
-          this.inviteName = '';
-          this.inviteEmail = '';
-          this.inviteCompany = '';
-          this.isSubmittingInvite.set(false);
-          this.setInviteFeedback(response.message, 'success');
-        },
-        error: () => {
-          this.isSubmittingInvite.set(false);
-          this.setInviteFeedback(
-            'N\u00E3o foi poss\u00EDvel registrar o convite agora. Tente novamente em instantes.',
+            'Não foi possível enviar a recuperação agora. Tente novamente em instantes.',
             'error',
           );
         },
@@ -265,23 +200,9 @@ export class LoginPage {
     this.forgotPasswordFeedbackTone.set(null);
   }
 
-  private resetInviteState(): void {
-    this.inviteName = '';
-    this.inviteEmail = '';
-    this.inviteCompany = '';
-    this.isSubmittingInvite.set(false);
-    this.inviteFeedback.set('');
-    this.inviteFeedbackTone.set(null);
-  }
-
   private setForgotPasswordFeedback(message: string, tone: Exclude<FeedbackTone, null>): void {
     this.forgotPasswordFeedback.set(message);
     this.forgotPasswordFeedbackTone.set(tone);
-  }
-
-  private setInviteFeedback(message: string, tone: Exclude<FeedbackTone, null>): void {
-    this.inviteFeedback.set(message);
-    this.inviteFeedbackTone.set(tone);
   }
 
   private setLoginFeedback(message: string, tone: Exclude<FeedbackTone, null>): void {
@@ -307,4 +228,3 @@ export class LoginPage {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 }
-

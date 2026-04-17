@@ -16,7 +16,6 @@ describe('LoginPage', () => {
     accessApiService = jasmine.createSpyObj<AccessApiService>('AccessApiService', [
       'login',
       'requestPasswordReset',
-      'requestInvite',
     ]);
 
     accessApiService.login.and.returnValue(
@@ -35,12 +34,6 @@ describe('LoginPage', () => {
       of({
         status: 'RECEBIDO',
         message: 'Solicitação de recuperação recebida.',
-      }),
-    );
-    accessApiService.requestInvite.and.returnValue(
-      of({
-        status: 'RECEBIDO',
-        message: 'Solicitação de convite registrada.',
       }),
     );
 
@@ -95,21 +88,6 @@ describe('LoginPage', () => {
 
     expect(accessApiService.requestPasswordReset).toHaveBeenCalledOnceWith({
       email: 'usuario@empresa.com',
-    });
-  });
-
-  it('should call the invite endpoint from the modal', () => {
-    (component as any).openInviteModal();
-    (component as any).inviteName = 'Usuário Teste';
-    (component as any).inviteEmail = 'usuario@empresa.com';
-    (component as any).inviteCompany = 'Produto';
-
-    (component as any).submitInviteRequest();
-
-    expect(accessApiService.requestInvite).toHaveBeenCalledOnceWith({
-      name: 'Usuário Teste',
-      email: 'usuario@empresa.com',
-      company: 'Produto',
     });
   });
 });

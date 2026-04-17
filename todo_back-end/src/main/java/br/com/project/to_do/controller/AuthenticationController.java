@@ -1,7 +1,6 @@
 package br.com.project.to_do.controller;
 
 import br.com.project.to_do.dto.AuthenticationDTO;
-import br.com.project.to_do.dto.InviteRequestDTO;
 import br.com.project.to_do.dto.LoginResponseDTO;
 import br.com.project.to_do.dto.OperationStatusResponseDTO;
 import br.com.project.to_do.dto.PasswordResetConfirmRequestDTO;
@@ -127,17 +126,6 @@ public class AuthenticationController {
         return ResponseEntity.ok(new OperationStatusResponseDTO("SUCCESS", "Senha redefinida com sucesso."));
     }
 
-    @PostMapping("/invite-request")
-    public ResponseEntity<OperationStatusResponseDTO> inviteRequest(
-            @RequestBody @Valid InviteRequestDTO requestDTO
-    ) {
-        log.info("Solicitacao de convite recebida para {} ({})", requestDTO.email(), requestDTO.company());
-        return ResponseEntity.ok(new OperationStatusResponseDTO(
-                "RECEIVED",
-                "Solicitacao de convite registrada com sucesso."
-        ));
-    }
-
     private String resolveRefreshToken(TokenRefreshRequestDTO requestDTO, HttpServletRequest request) {
         return resolveOptionalRefreshToken(requestDTO, request)
                 .orElseThrow(() -> new br.com.project.to_do.exception.InvalidTokenException(
@@ -155,5 +143,4 @@ public class AuthenticationController {
 
         return authCookieService.resolveRefreshToken(request);
     }
-
 }

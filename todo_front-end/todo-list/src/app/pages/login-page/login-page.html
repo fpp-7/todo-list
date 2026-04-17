@@ -55,7 +55,13 @@
                 d="M20 21a8 8 0 1 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"
               />
             </svg>
-            <input type="email" placeholder="voc&ecirc;@empresa.com" autocomplete="email" [(ngModel)]="loginEmail" name="loginEmail"/>
+            <input
+              type="email"
+              placeholder="voc&ecirc;@empresa.com"
+              autocomplete="email"
+              [(ngModel)]="loginEmail"
+              name="loginEmail"
+            />
           </span>
         </label>
 
@@ -71,7 +77,8 @@
               [type]="showPassword() ? 'text' : 'password'"
               placeholder="Digite sua senha"
               autocomplete="current-password"
-              [(ngModel)]="loginPassword" name="loginPassword"
+              [(ngModel)]="loginPassword"
+              name="loginPassword"
             />
             <button
               type="button"
@@ -112,7 +119,11 @@
             <span>Mantenha-me conectado</span>
           </label>
 
-          <button type="button" class="inline-link inline-link--button" (click)="openForgotPasswordModal()">
+          <button
+            type="button"
+            class="inline-link inline-link--button"
+            (click)="openForgotPasswordModal()"
+          >
             Esqueceu sua senha?
           </button>
         </div>
@@ -129,10 +140,6 @@
       <p class="support-copy">
         Primeiro acesso?
         <a class="inline-link" routerLink="/register">Criar conta</a>
-        ou
-        <button type="button" class="inline-link inline-link--button" (click)="openInviteModal()">
-          Solicitar convite
-        </button>
       </p>
     </div>
   </section>
@@ -158,7 +165,8 @@
       </div>
 
       <p class="access-modal__description">
-        Informe seu e-mail para receber as instru&ccedil;&otilde;es de redefini&ccedil;&atilde;o de senha.
+        Informe seu e-mail para receber as instru&ccedil;&otilde;es de redefini&ccedil;&atilde;o de
+        senha.
       </p>
 
       <form class="access-modal__form" (ngSubmit)="submitForgotPassword()">
@@ -190,119 +198,22 @@
         }
 
         <div class="access-modal__actions">
-          <button type="button" class="access-modal__secondary" (click)="closeForgotPasswordModal()">
+          <button
+            type="button"
+            class="access-modal__secondary"
+            (click)="closeForgotPasswordModal()"
+          >
             Cancelar
           </button>
-          <button type="submit" class="access-modal__primary" [disabled]="isSubmittingForgotPassword()">
+          <button
+            type="submit"
+            class="access-modal__primary"
+            [disabled]="isSubmittingForgotPassword()"
+          >
             @if (isSubmittingForgotPassword()) {
               Enviando...
             } @else {
               Enviar instru&ccedil;&otilde;es
-            }
-          </button>
-        </div>
-      </form>
-    </section>
-  </div>
-}
-
-@if (isInviteModalOpen()) {
-  <div class="access-modal-backdrop" (click)="closeInviteModal()">
-    <section
-      class="access-modal access-modal--wide"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="invite-modal-title"
-      (click)="$event.stopPropagation()"
-    >
-      <div class="access-modal__header">
-        <div>
-          <p class="access-modal__eyebrow">Primeiro acesso</p>
-          <h3 id="invite-modal-title">Solicitar convite</h3>
-        </div>
-        <button type="button" class="access-modal__close" (click)="closeInviteModal()">
-          Fechar
-        </button>
-      </div>
-
-      <p class="access-modal__description">
-        Envie seus dados para avaliarmos seu acesso e retornarmos com as instru&ccedil;&otilde;es de entrada.
-      </p>
-
-      <form class="access-modal__form" (ngSubmit)="submitInviteRequest()">
-        <div class="access-modal__grid">
-          <label class="access-modal__field">
-            <span class="access-modal__label">Nome</span>
-            <span class="access-modal__field-shell">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M20 21a8 8 0 1 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
-              </svg>
-              <input
-                [(ngModel)]="inviteName"
-                name="inviteName"
-                type="text"
-                placeholder="Seu nome"
-                autocomplete="name"
-              />
-            </span>
-          </label>
-
-          <label class="access-modal__field">
-            <span class="access-modal__label">E-mail</span>
-            <span class="access-modal__field-shell">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7.5 12 13l8-5.5" />
-                <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
-              </svg>
-              <input
-                [(ngModel)]="inviteEmail"
-                name="inviteEmail"
-                type="email"
-                placeholder="voce@empresa.com"
-                autocomplete="email"
-              />
-            </span>
-          </label>
-        </div>
-
-        <label class="access-modal__field">
-          <span class="access-modal__label">Empresa ou equipe</span>
-          <span class="access-modal__field-shell">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 20h16" />
-              <path d="M6 20V8h12v12" />
-              <path d="M9 12h.01M9 15h.01M12 12h.01M12 15h.01M15 12h.01M15 15h.01" />
-              <path d="M9 8V5h6v3" />
-            </svg>
-            <input
-              [(ngModel)]="inviteCompany"
-              name="inviteCompany"
-              type="text"
-              placeholder="Ex.: Produto, Opera&ccedil;&otilde;es, Empresa X"
-              autocomplete="organization"
-            />
-          </span>
-        </label>
-
-        @if (inviteFeedback()) {
-          <p
-            class="access-modal__feedback"
-            [class.access-modal__feedback--success]="inviteFeedbackTone() === 'success'"
-            [class.access-modal__feedback--error]="inviteFeedbackTone() === 'error'"
-          >
-            {{ inviteFeedback() }}
-          </p>
-        }
-
-        <div class="access-modal__actions">
-          <button type="button" class="access-modal__secondary" (click)="closeInviteModal()">
-            Cancelar
-          </button>
-          <button type="submit" class="access-modal__primary" [disabled]="isSubmittingInvite()">
-            @if (isSubmittingInvite()) {
-              Enviando...
-            } @else {
-              Enviar solicita&ccedil;&atilde;o
             }
           </button>
         </div>

@@ -15,12 +15,6 @@ export type PasswordResetRequestPayload = {
   readonly email: string;
 };
 
-export type InviteRequestPayload = {
-  readonly name: string;
-  readonly email: string;
-  readonly company: string | null;
-};
-
 export type AccessRequestResponse = {
   readonly status: string;
   readonly message: string;
@@ -56,9 +50,5 @@ export class AccessApiService {
 
   resetPassword(payload: PasswordResetConfirmDTO): Observable<OperationStatusResponseDTO> {
     return this.http.post<OperationStatusResponseDTO>(apiRoutes.auth.resetPassword, payload);
-  }
-
-  requestInvite(payload: InviteRequestPayload): Observable<AccessRequestResponse> {
-    return this.http.post<AccessRequestResponse>(apiRoutes.auth.requestInvite, payload);
   }
 }

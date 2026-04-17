@@ -10,7 +10,6 @@ export const apiRoutes = {
     register: `${backendOrigin}/auth/register`,
     forgotPassword: `${backendOrigin}/auth/forgot-password`,
     resetPassword: `${backendOrigin}/auth/reset-password`,
-    requestInvite: `${backendOrigin}/auth/invite-request`,
   },
   profile: {
     base: `${backendOrigin}/profile`,

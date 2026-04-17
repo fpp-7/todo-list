@@ -8,6 +8,7 @@ export type AppTheme = 'light' | 'dark';
 })
 export class ThemeService {
   private readonly storageKey = 'todo-list-theme';
+  private readonly themedRoutePrefixes = ['/tasks', '/dashboard'];
   private readonly document = inject(DOCUMENT);
   private readonly preferredTheme = signal<AppTheme>('light');
   private readonly activeTheme = signal<AppTheme>('light');
@@ -19,9 +20,7 @@ export class ThemeService {
     const initialTheme = this.resolveInitialTheme();
 
     this.preferredTheme.set(initialTheme);
-    this.applyDocumentTheme(
-      this.shouldForceLightTheme(this.readCurrentPath()) ? 'light' : initialTheme,
-    );
+    this.applyDocumentTheme(this.resolveThemeForUrl(this.readCurrentPath()));
   }
 
   toggleTheme(): void {
@@ -31,11 +30,11 @@ export class ThemeService {
   setTheme(theme: AppTheme): void {
     this.preferredTheme.set(theme);
     this.persistTheme(theme);
-    this.applyDocumentTheme(this.shouldForceLightTheme(this.readCurrentPath()) ? 'light' : theme);
+    this.applyDocumentTheme(this.resolveThemeForUrl(this.readCurrentPath()));
   }
 
   applyRouteTheme(url: string): void {
-    this.applyDocumentTheme(this.shouldForceLightTheme(url) ? 'light' : this.preferredTheme());
+    this.applyDocumentTheme(this.resolveThemeForUrl(url));
   }
 
   private resolveInitialTheme(): AppTheme {
@@ -96,9 +95,13 @@ export class ThemeService {
     return window.location.pathname;
   }
 
+  private resolveThemeForUrl(url: string): AppTheme {
+    return this.shouldForceLightTheme(url) ? 'light' : this.preferredTheme();
+  }
+
   private shouldForceLightTheme(url: string): boolean {
     const normalizedUrl = url.split('?')[0]?.split('#')[0]?.toLowerCase() ?? '';
 
-    return normalizedUrl === '' || normalizedUrl === '/' || normalizedUrl.startsWith('/login');
+    return !this.themedRoutePrefixes.some((routePrefix) => normalizedUrl.startsWith(routePrefix));
   }
 }
