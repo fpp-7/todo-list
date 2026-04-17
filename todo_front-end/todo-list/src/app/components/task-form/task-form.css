@@ -136,16 +136,17 @@
   flex-wrap: wrap;
 }
 
-.task-form-card__chips button,
+.task-form-card__chip,
 .task-form-card__submit {
   font: inherit;
 }
 
-.task-form-card__chips button {
+.task-form-card__chip {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: space-between;
+  gap: 0.75rem;
   min-height: 2.85rem;
   padding: 0 1rem;
   border: 1px solid var(--surface-border);
@@ -163,7 +164,7 @@
     box-shadow 180ms ease;
 }
 
-.task-form-card__chips button::after {
+.task-form-card__chip::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -172,9 +173,19 @@
   transition: opacity 180ms ease;
 }
 
-.task-form-card__chips button > * {
+.task-form-card__chip > * {
   position: relative;
   z-index: 1;
+}
+
+.task-form-card__chip-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.task-form-card__chip-label {
+  white-space: nowrap;
 }
 
 .task-form-card__chip-dot {
@@ -203,8 +214,25 @@
   box-shadow: 0 0 0 0.18rem rgba(244, 91, 91, 0.12);
 }
 
-.task-form-card__chips button:hover,
-.task-form-card__chips button:focus-visible,
+.task-form-card__chip-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: currentColor;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(16, 32, 58, 0.14);
+}
+
+.task-form-card__chip-check svg {
+  width: 0.88rem;
+  height: 0.88rem;
+}
+
+.task-form-card__chip:hover,
+.task-form-card__chip:focus-visible,
 .task-form-card__chip--active {
   border-color: rgba(var(--accent-primary-rgb), 0.28);
   background: rgba(var(--accent-primary-rgb), 0.1);
@@ -215,6 +243,10 @@
 
 .task-form-card__chip--active {
   font-weight: 700;
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 0.16rem rgba(var(--accent-primary-rgb), 0.12),
+    0 14px 28px rgba(47, 124, 255, 0.14);
 }
 
 .task-form-card__chip--active::after {
@@ -328,7 +360,7 @@
 
 :host-context([data-theme='dark']) .task-form-card__control,
 :host-context([data-theme='dark']) .task-form-card__priority,
-:host-context([data-theme='dark']) .task-form-card__chips button {
+:host-context([data-theme='dark']) .task-form-card__chip {
   background: var(--control-surface);
   border-color: var(--surface-border);
   color: var(--text-primary);
@@ -352,7 +384,7 @@
   color-scheme: dark;
 }
 
-:host-context([data-theme='dark']) .task-form-card__chips button {
+:host-context([data-theme='dark']) .task-form-card__chip {
   box-shadow: var(--surface-highlight);
 }
 

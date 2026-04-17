@@ -23,5 +23,26 @@ describe('TaskForm', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Título');
   });
+
+  it('should keep the clicked priority marked as selected', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const findPriorityChip = (priority: string) =>
+      Array.from(compiled.querySelectorAll<HTMLButtonElement>('.task-form-card__chip')).find(
+        (chip) => chip.dataset['priority'] === priority,
+      ) ?? null;
+
+    const mediumChip = findPriorityChip('Média');
+    const highChip = findPriorityChip('Alta');
+
+    expect(mediumChip?.getAttribute('aria-pressed')).toBe('true');
+    expect(highChip?.getAttribute('aria-pressed')).toBe('false');
+
+    highChip?.click();
+    fixture.detectChanges();
+
+    expect(highChip?.getAttribute('aria-pressed')).toBe('true');
+    expect(highChip?.classList.contains('task-form-card__chip--active')).toBeTrue();
+    expect(mediumChip?.getAttribute('aria-pressed')).toBe('false');
+  });
 });
 

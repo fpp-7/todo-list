@@ -71,6 +71,8 @@
         @for (priority of priorities; track priority) {
           <button
             type="button"
+            class="task-form-card__chip"
+            [attr.data-priority]="priority"
             [class.task-form-card__chip--active]="selectedPriority() === priority"
             [class.task-form-card__chip--low-active]="selectedPriority() === priority && priority === 'Baixa'"
             [class.task-form-card__chip--medium-active]="selectedPriority() === priority && priority === 'Média'"
@@ -78,14 +80,29 @@
             [attr.aria-pressed]="selectedPriority() === priority"
             (click)="setPriority(priority)"
           >
-            <span
-              class="task-form-card__chip-dot"
-              [class.task-form-card__chip-dot--low]="priority === 'Baixa'"
-              [class.task-form-card__chip-dot--medium]="priority === 'Média'"
-              [class.task-form-card__chip-dot--high]="priority === 'Alta'"
-              aria-hidden="true"
-            ></span>
-            {{ priority }}
+            <span class="task-form-card__chip-content">
+              <span
+                class="task-form-card__chip-dot"
+                [class.task-form-card__chip-dot--low]="priority === 'Baixa'"
+                [class.task-form-card__chip-dot--medium]="priority === 'Média'"
+                [class.task-form-card__chip-dot--high]="priority === 'Alta'"
+                aria-hidden="true"
+              ></span>
+              <span class="task-form-card__chip-label">{{ priority }}</span>
+            </span>
+            @if (selectedPriority() === priority) {
+              <span class="task-form-card__chip-check" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M3.5 8.5L6.5 11.5L12.5 5.5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+            }
           </button>
         }
       </div>

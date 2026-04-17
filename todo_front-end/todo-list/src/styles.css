@@ -654,6 +654,18 @@ html[data-theme='dark'] .dashboard-modal--task-edit .task-edit-form__field texta
   opacity: 1;
 }
 
+html[data-theme='dark'] .task-edit-form__field select,
+html[data-theme='dark'] .task-edit-form__field select option,
+html[data-theme='dark'] .task-edit-form__field select optgroup {
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] .task-edit-form__field select option,
+html[data-theme='dark'] .task-edit-form__field select optgroup {
+  background: #0f1b31;
+  color: var(--text-strong) !important;
+}
+
 html[data-theme='dark'] .task-topbar__logo img {
   filter: brightness(0) invert(1);
 }
