@@ -29,6 +29,8 @@ import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,14 +38,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.ArgumentCaptor;
+
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class TodoApiIntegrationTest {
+
+    private static final Pattern RESET_TOKEN_PATTERN = Pattern.compile("token=([A-Za-z0-9_-]+)");
 
     @Autowired
     private MockMvc mockMvc;
@@ -65,6 +75,9 @@ class TodoApiIntegrationTest {
 
     @Autowired
     private SecureTokenService secureTokenService;
+
+    @MockitoBean
+    private JavaMailSender mailSender;
 
     @BeforeEach
     void cleanUp() {
@@ -211,6 +224,34 @@ class TodoApiIntegrationTest {
                                 new TokenRefreshRequestDTO(oldLogin.refreshToken())
                         )))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldCreatePasswordResetTokenAndSendEmail() throws Exception {
+        createMember("recover@example.com", "senha123", "Recover");
+
+        mockMvc.perform(post("/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "recover@example.com"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RECEIVED"));
+
+        ArgumentCaptor<SimpleMailMessage> mailCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(mailCaptor.capture());
+
+        SimpleMailMessage message = mailCaptor.getValue();
+        String rawResetToken = extractResetToken(message.getText());
+
+        assertThat(message.getFrom()).isEqualTo("no-reply@todo.local");
+        assertThat(message.getTo()).containsExactly("recover@example.com");
+        assertThat(message.getSubject()).isEqualTo("Recuperacao de senha - Todo List");
+        assertThat(message.getText()).contains("http://localhost:4200/reset-password?token=");
+        assertThat(passwordResetTokenRepository.findByTokenHash(secureTokenService.hashToken(rawResetToken)))
+                .isPresent();
     }
 
     @Test
@@ -481,5 +522,11 @@ class TodoApiIntegrationTest {
                 .getContentAsString();
 
         return objectMapper.readValue(response, LoginResponseDTO.class);
+    }
+
+    private String extractResetToken(String messageText) {
+        Matcher matcher = RESET_TOKEN_PATTERN.matcher(messageText);
+        assertThat(matcher.find()).isTrue();
+        return matcher.group(1);
     }
 }

@@ -30,7 +30,8 @@ Variaveis mais importantes:
 - `APP_LOG_DIR`, `ROOT_LOG_LEVEL`, `APP_LOG_LEVEL`, `SQL_LOG_LEVEL`: controlam onde os logs vao e qual verbosidade sera usada.
 - `SPRING_MAIL_*` e `APP_MAIL_FROM`: opcionais; habilitam envio real de e-mail para reset de senha.
 
-Sem SMTP configurado, o backend continua funcionando e registra o link de reset no log.
+Com Docker, o projeto sobe um Mailpit local por padrao para testar a recuperacao de senha sem depender de SMTP externo.
+Se voce rodar o backend sem Docker, pode apontar `SPRING_MAIL_HOST=127.0.0.1` e `SPRING_MAIL_PORT=1025` para o Mailpit.
 
 ## Rodando sem Docker
 
@@ -40,6 +41,14 @@ Backend com profile local e banco H2 em arquivo:
 cd todo_back-end
 $env:SPRING_PROFILES_ACTIVE='local'
 .\gradlew.bat bootRun
+```
+
+Para testar recuperacao de senha por e-mail sem usar um SMTP real:
+
+```powershell
+cd todo_back-end
+# ajuste o .env com as variaveis SPRING_MAIL_* sugeridas em .env.example
+docker compose up todo-mailpit
 ```
 
 Frontend:
@@ -55,6 +64,7 @@ URLs locais:
 - Frontend: `http://127.0.0.1:4200`
 - Backend: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Mailpit: `http://localhost:8025`
 
 ## Rodando com Docker
 
@@ -66,8 +76,13 @@ docker compose up --build
 O compose sobe:
 
 - `todo-db`: PostgreSQL 15
+- `todo-mailpit`: caixa SMTP local para recuperar senha
 - `todo-backend`: API Spring Boot
 - `todo-frontend`: aplicacao Angular
+
+URL util ao rodar com Docker:
+
+- Mailpit inbox: `http://localhost:8025`
 
 Volumes usados:
 
