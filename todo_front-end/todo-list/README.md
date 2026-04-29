@@ -1,59 +1,167 @@
-# TodoList
+# 🖥️ Frontend — Todo List
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.3.
+SPA (Single Page Application) construída com **Angular 20**, responsável pela interface de autenticação, gerenciamento de tarefas e perfil do usuário.
 
-## Development server
+---
 
-To start a local development server, run:
+## 🗂️ Estrutura do Projeto
 
-```bash
-ng serve
+```
+src/
+├── index.html              # HTML raiz da aplicação
+├── main.ts                 # Ponto de entrada do Angular
+├── styles.css              # Estilos globais
+└── app/
+    ├── app.ts              # Componente raiz
+    ├── app.routes.ts       # Definição de rotas (lazy loading)
+    ├── app.config.ts       # Configuração global (providers, interceptors)
+    │
+    ├── pages/              # Telas carregadas por lazy loading
+    │   ├── login-page/         # Tela de login
+    │   ├── register-page/      # Tela de cadastro
+    │   └── reset-password-page/ # Tela de redefinição de senha
+    │
+    ├── components/         # Componentes reutilizáveis
+    │   ├── task-list/          # Lista principal de tarefas (tela principal)
+    │   └── task-form/          # Formulário de criação/edição de tarefa
+    │
+    └── core/               # Serviços e infraestrutura
+        ├── auth/
+        │   ├── auth.guard.ts        # Guards: authGuard / publicOnlyGuard
+        │   ├── auth.interceptor.ts  # Interceptor HTTP (renova token automaticamente)
+        │   ├── auth.dtos.ts         # Tipos de request/response de autenticação
+        │   ├── session.service.ts   # Gerencia o estado da sessão do usuário
+        │   └── access-api.service.ts # Chamadas HTTP de autenticação
+        ├── api/            # Cliente HTTP base
+        ├── tasks/          # Serviço e tipos de tarefas
+        ├── profile/        # Serviço de perfil (foto, senha)
+        ├── theme/          # Gerenciamento de tema (claro/escuro)
+        └── toast/          # Sistema de notificações toast
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+---
 
-## Code scaffolding
+## 🔀 Rotas
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+| Rota | Componente | Proteção |
+|---|---|---|
+| `/` | Redireciona para `/login` | — |
+| `/login` | `LoginPage` | `publicOnlyGuard` (redireciona se já autenticado) |
+| `/register` | `RegisterPage` | `publicOnlyGuard` |
+| `/reset-password` | `ResetPasswordPage` | `publicOnlyGuard` |
+| `/tasks` | `TaskList` | `authGuard` (requer autenticação) |
+| `/dashboard` | Redireciona para `/tasks` | — |
+| `/**` | Redireciona para `/login` | — |
 
-```bash
-ng generate component component-name
+---
+
+## 🛡️ Autenticação no Frontend
+
+- Os tokens são armazenados em **cookies `HttpOnly`** gerenciados pelo backend — o JavaScript não tem acesso direto a eles.
+- O `SessionService` mantém em memória apenas metadados não sensíveis (nome de exibição, URL da foto de perfil).
+- O `AuthInterceptor` detecta respostas `401` e tenta renovar o access token via `/auth/refresh` automaticamente, repetindo a requisição original após o refresh bem-sucedido.
+- Os guards `authGuard` e `publicOnlyGuard` protegem as rotas, redirecionando o usuário conforme o estado da sessão.
+
+---
+
+## 🚀 Executando Localmente
+
+### Pré-requisitos
+
+- Node.js 20+
+- npm
+
+### Instalação e Início
+
+```powershell
+cd todo_front-end/todo-list
+npm install
+npm start -- --host 127.0.0.1 --port 4200
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+A aplicação estará disponível em `http://127.0.0.1:4200`.
 
-```bash
-ng generate --help
+> O backend precisa estar rodando em `http://localhost:8080` para a aplicação funcionar corretamente.
+
+---
+
+## 🐳 Docker
+
+O `Dockerfile` usa a imagem `node:22`:
+
+1. Copia o projeto e instala as dependências com `npm install`.
+2. Instala o Angular CLI globalmente.
+3. Expõe a porta `4200` e inicia com `ng serve --host 0.0.0.0`.
+
+O container é iniciado automaticamente pelo `docker compose up` (a partir de `todo_back-end/`).
+
+---
+
+## 🏗️ Build de Produção
+
+```powershell
+cd todo_front-end/todo-list
+npm run build
 ```
 
-## Building
+Os artefatos de produção serão gerados em `dist/`, otimizados para performance.
 
-To build the project run:
+---
 
-```bash
-ng build
+## 🧪 Testes
+
+### Unitários (Karma + Jasmine)
+
+```powershell
+npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+### Smoke E2E
 
-## Running unit tests
+Requer frontend (`http://127.0.0.1:4200`) e backend (`http://localhost:8080`) rodando:
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
+```powershell
+npm run test:e2e
 ```
 
-## Running end-to-end tests
+O script E2E está em `scripts/e2e-smoke.mjs`.
 
-For end-to-end (e2e) testing, run:
+---
 
-```bash
-ng e2e
-```
+## 📦 Dependências Principais
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+| Pacote | Versão | Finalidade |
+|---|---|---|
+| `@angular/core` | ^20.3.18 | Framework principal |
+| `@angular/router` | ^20.3.18 | Roteamento SPA com lazy loading |
+| `@angular/forms` | ^20.3.18 | Formulários reativos |
+| `rxjs` | ~7.8.0 | Programação reativa |
+| `zone.js` | ~0.15.0 | Detecção de mudanças Angular |
+| `@angular/cli` | ^20.3.3 | Tooling de desenvolvimento |
+| `typescript` | ~5.9.2 | Tipagem estática |
+| `karma` + `jasmine` | ~6.4 / ~5.9 | Testes unitários |
 
-## Additional Resources
+---
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## 🔧 Scripts npm
+
+| Script | Comando | Descrição |
+|---|---|---|
+| `npm start` | `ng serve` | Inicia o servidor de desenvolvimento |
+| `npm run build` | `ng build` | Build de produção |
+| `npm test` | `ng test` | Executa testes unitários |
+| `npm run test:e2e` | `node scripts/e2e-smoke.mjs` | Executa smoke tests E2E |
+| `npm run watch` | `ng build --watch` | Build em modo watch (desenvolvimento) |
+
+---
+
+## 🌐 Configuração do Backend
+
+O endereço da API é configurado em `src/environments/`:
+
+- `environment.ts` — ambiente de desenvolvimento (aponta para `http://localhost:8080`)
+- `environment.prod.ts` — ambiente de produção
+
+---
+
+> Para instruções completas de execução com Docker e descrição de todos os endpoints da API, consulte o **[README raiz](../../README.md)**.
